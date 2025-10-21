@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  anti-ad-bot:
+    build: .
+    container_name: anti-ad-bot
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      GUILD_ID: ${GUILD_ID}
+      MUTED_ROLE_ID: ${MUTED_ROLE_ID}
+      APPEAL_CHANNEL_ID: ${APPEAL_CHANNEL_ID}
+      LOG_CHANNEL_ID: ${LOG_CHANNEL_ID}
+      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.85}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+    volumes:
+      - ./Training-Data:/app/Training-Data
+      - ./data.json:/app/data.json
+      - ./bot.log:/app/bot.log
+    restart: unless-stopped
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('data.json') or os.path.exists('Training-Data') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  bot-network:
+    driver: bridge

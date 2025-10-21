@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Anti-Ad Bot training data management interface">
+    <meta name="theme-color" content="#1e3a8a">
+    <title>Anti-Ad Bot - Training Data Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3a8a;      /* Dark blue */
+            --primary-light: #3b82f6; /* Light blue */
+            --primary-dark: #0c2340; /* Darker blue */
+            --secondary: #1e293b;    /* Dark slate */
+            --accent: #10b981;       /* Green */
+            --danger: #ef4444;       /* Red */
+            --bg: #0f172a;           /* Very dark blue */
+            --surface: #1e293b;      /* Surface dark */
+            --text: #f1f5f9;         /* Light text */
+            --text-muted: #94a3b8;   /* Muted text */
+            --border: #334155;       /* Border color */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, var(--primary-dark) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            color: var(--primary-light);
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(30, 58, 138, 0.3);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-light);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* Main content */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h2 {
+            color: var(--primary-light);
+            margin-bottom: 20px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Upload section */
+        .upload-zone {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: rgba(30, 58, 138, 0.2);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary-light);
+            background: rgba(30, 58, 138, 0.3);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .upload-zone .filename {
+            color: var(--primary-light);
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Button */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Images list */
+        .images-list {
+            display: grid;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .image-item {
+            background: rgba(30, 58, 138, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+        }
+
+        .image-item:hover {
+            background: rgba(30, 58, 138, 0.3);
+            border-color: var(--primary);
+        }
+
+        .image-info {
+            flex: 1;
+        }
+
+        .image-name {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .image-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .image-item .btn {
+            margin-left: 10px;
+        }
+
+        /* Config section */
+        .config-form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: rgba(30, 58, 138, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            background: rgba(30, 58, 138, 0.3);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Messages */
+        .alert {
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--primary-light);
+            color: var(--primary-light);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-light);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Anti-Ad Bot - Training Data Manager</h1>
+            <p>Upload and manage spam detection training images</p>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="value" id="statusValue">Checking...</div>
+                    <div class="label">Status</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="imageCountValue">0</div>
+                    <div class="label">Training Images</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value">Active</div>
+                    <div class="label">Bot Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Upload Panel -->
+            <div class="panel">
+                <h2>Upload Training Image</h2>
+                
+                <div id="alertContainer"></div>
+
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">↑</div>
+                    <p>
+                        <strong>Click to select or drag & drop</strong><br>
+                        PNG, JPG, JPEG, GIF, WEBP, BMP<br>
+                        <small>Max 10MB</small>
+                    </p>
+                    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp">
+                </div>
+
+                <button class="btn btn-primary" id="uploadBtn" style="width: 100%; margin-top: 15px; justify-content: center;">
+                    Upload Image
+                </button>
+            </div>
+
+            <!-- Images List Panel -->
+            <div class="panel">
+                <h2>Training Images</h2>
+                <div class="images-list" id="imagesList">
+                    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                        Loading...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Panel (Full Width) -->
+        <div class="panel">
+            <h2>Configuration Settings</h2>
+            
+            <div class="config-form">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div class="form-group">
+                        <label for="threshold">Similarity Threshold (0.0-1.0)</label>
+                        <input type="number" id="threshold" min="0" max="1" step="0.05" value="0.75" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="punishmentType">Punishment Type</label>
+                        <select id="punishmentType" required>
+                            <option value="mute">Mute</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="kick">Kick</option>
+                            <option value="ban">Ban</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="firstOffense">First Offense Action</label>
+                        <select id="firstOffense" required>
+                            <option value="mute">Mute</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="kick">Kick</option>
+                            <option value="ban">Ban</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="secondOffense">Second Offense Action</label>
+                        <select id="secondOffense" required>
+                            <option value="mute">Mute</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="kick">Kick</option>
+                            <option value="ban">Ban</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="thirdOffense">Third Offense Action</label>
+                        <select id="thirdOffense" required>
+                            <option value="mute">Mute</option>
+                            <option value="timeout">Timeout</option>
+                            <option value="kick">Kick</option>
+                            <option value="ban">Ban</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="muteDuration">Mute Duration (Days)</label>
+                        <input type="number" id="muteDuration" min="0" max="30" value="7" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeoutDuration">Timeout Duration (Minutes)</label>
+                        <input type="number" id="timeoutDuration" min="1" max="10080" value="60" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="autoDelete">Auto Delete Images</label>
+                        <select id="autoDelete" required>
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="saveConfigBtn" style="width: 100%; margin-top: 20px; justify-content: center;">
+                    Save Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Anti-Ad Bot v2.0 | Secure Training Data Manager</p>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        /* ============================================
+           Configuration & Constants
+           ============================================ */
+        const CONFIG = {
+            API_BASE: '/api',
+            API_TIMEOUT: 10000,
+            STATUS_CHECK_INTERVAL: 30000,
+            ALERT_DURATION: 4000,
+            MAX_RETRIES: 3
+        };
+
+        /* ============================================
+           DOM Element Caching
+           ============================================ */
+        const DOM = {
+            uploadZone: document.getElementById('uploadZone'),
+            fileInput: document.getElementById('fileInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            imagesList: document.getElementById('imagesList'),
+            imageCountValue: document.getElementById('imageCountValue'),
+            statusValue: document.getElementById('statusValue'),
+            alertContainer: document.getElementById('alertContainer'),
+            saveConfigBtn: document.getElementById('saveConfigBtn')
+        };
+
+        /* ============================================
+           Utility Functions
+           ============================================ */
+        
+        /**
+         * Get API token from element or environment
+         */
+        function getApiToken() {
+            const token = document.querySelector('meta[name="api-token"]')?.content || 'your-secure-token-here';
+            if (token === 'your-secure-token-here') {
+                console.warn('Warning: Using default API token. Set via meta tag for production.');
+            }
+            return token;
+        }
+
+        /**
+         * Fetch wrapper with timeout and error handling
+         */
+        async function apiFetch(endpoint, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
+                    ...options,
+                    signal: controller.signal,
+                    headers: {
+                        'X-API-Token': getApiToken(),
+                        ...options.headers
+                    }
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                return response;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout');
+                }
+                throw error;
+            }
+        }
+
+        /**
+         * Show alert message with auto-dismiss
+         */
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            alert.setAttribute('role', 'alert');
+            alert.setAttribute('aria-live', 'polite');
+
+            DOM.alertContainer.innerHTML = '';
+            DOM.alertContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 300);
+            }, CONFIG.ALERT_DURATION);
+        }
+
+        /**
+         * Format file size for display
+         */
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 KB';
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+        }
+
+        /**
+         * Format date for display
+         */
+        function formatDate(dateString) {
+            try {
+                return new Date(dateString).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch {
+                return 'Unknown';
+            }
+        }
+
+        /**
+         * Escape HTML special characters
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /* ============================================
+           File Upload Handlers
+           ============================================ */
+
+        /**
+         * Initialize drag and drop listeners
+         */
+        function initDragDrop() {
+            DOM.uploadZone.addEventListener('click', () => DOM.fileInput.click());
+            
+            DOM.uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                DOM.uploadZone.classList.add('dragover');
+            });
+
+            DOM.uploadZone.addEventListener('dragleave', () => {
+                DOM.uploadZone.classList.remove('dragover');
+            });
+
+            DOM.uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                DOM.uploadZone.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            DOM.fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            DOM.uploadBtn.addEventListener('click', () => DOM.fileInput.click());
+        }
+
+        /**
+         * Handle file upload
+         */
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            const file = files[0];
+            
+            // Validate file
+            const validExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            if (!validExtensions.includes(fileExt)) {
+                showAlert('Invalid file type. Supported: PNG, JPG, JPEG, GIF, WEBP, BMP', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showAlert('File too large. Maximum: 10MB', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            DOM.uploadBtn.disabled = true;
+            DOM.uploadBtn.innerHTML = '<span class="spinner"></span> Uploading...';
+
+            try {
+                const response = await apiFetch('/training-images/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                showAlert('Image uploaded successfully', 'success');
+                DOM.fileInput.value = '';
+                await loadImages();
+            } catch (error) {
+                showAlert(`Upload error: ${error.message}`, 'error');
+            } finally {
+                DOM.uploadBtn.disabled = false;
+                DOM.uploadBtn.innerHTML = 'Upload Image';
+            }
+        }
+
+        /**
+         * Delete training image
+         */
+        async function deleteImage(filename) {
+            if (!confirm(`Delete ${filename}?`)) return;
+
+            try {
+                await apiFetch(`/training-images/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE'
+                });
+                showAlert('Image deleted successfully', 'success');
+                await loadImages();
+            } catch (error) {
+                showAlert(`Delete error: ${error.message}`, 'error');
+            }
+        }
+
+        /* ============================================
+           Image & Configuration Loading
+           ============================================ */
+
+        /**
+         * Load and display training images
+         */
+        async function loadImages() {
+            try {
+                const response = await apiFetch('/training-images');
+                const data = await response.json();
+                const images = Array.isArray(data.images) ? data.images : [];
+
+                DOM.imageCountValue.textContent = images.length;
+
+                if (images.length === 0) {
+                    DOM.imagesList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No training images yet</p>';
+                    return;
+                }
+
+                DOM.imagesList.innerHTML = images.map(img => `
+                    <div class="image-item">
+                        <div class="image-info">
+                            <div class="image-name">${escapeHtml(img.name)}</div>
+                            <div class="image-meta">
+                                ${formatFileSize(img.size)} • Modified: ${formatDate(img.modified)}
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteImage('${escapeHtml(img.name)}')">Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                DOM.imagesList.innerHTML = `<p style="color: var(--danger);">Error loading images: ${escapeHtml(error.message)}</p>`;
+            }
+        }
+
+        /**
+         * Load current configuration
+         */
+        async function loadConfig() {
+            try {
+                const response = await apiFetch('/config');
+                const config = await response.json();
+
+                document.getElementById('threshold').value = config.SIMILARITY_THRESHOLD || '0.75';
+                document.getElementById('punishmentType').value = config.PUNISHMENT_TYPE || 'mute';
+                document.getElementById('firstOffense').value = config.FIRST_OFFENSE_ACTION || 'mute';
+                document.getElementById('secondOffense').value = config.SECOND_OFFENSE_ACTION || 'timeout';
+                document.getElementById('thirdOffense').value = config.THIRD_OFFENSE_ACTION || 'kick';
+                document.getElementById('muteDuration').value = config.MUTE_DURATION_DAYS || '7';
+                document.getElementById('timeoutDuration').value = config.TIMEOUT_DURATION_MINUTES || '60';
+                document.getElementById('autoDelete').value = config.AUTO_DELETE_IMAGE ? 'true' : 'false';
+            } catch (error) {
+                showAlert(`Config load error: ${error.message}`, 'error');
+            }
+        }
+
+        /**
+         * Save configuration changes
+         */
+        async function saveConfig() {
+            const config = {
+                SIMILARITY_THRESHOLD: parseFloat(document.getElementById('threshold').value),
+                PUNISHMENT_TYPE: document.getElementById('punishmentType').value,
+                FIRST_OFFENSE_ACTION: document.getElementById('firstOffense').value,
+                SECOND_OFFENSE_ACTION: document.getElementById('secondOffense').value,
+                THIRD_OFFENSE_ACTION: document.getElementById('thirdOffense').value,
+                MUTE_DURATION_DAYS: parseInt(document.getElementById('muteDuration').value, 10),
+                TIMEOUT_DURATION_MINUTES: parseInt(document.getElementById('timeoutDuration').value, 10),
+                AUTO_DELETE_IMAGE: document.getElementById('autoDelete').value === 'true'
+            };
+
+            DOM.saveConfigBtn.disabled = true;
+            DOM.saveConfigBtn.innerHTML = '<span class="spinner"></span> Saving...';
+
+            try {
+                await apiFetch('/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                showAlert('Configuration saved successfully', 'success');
+            } catch (error) {
+                showAlert(`Save error: ${error.message}`, 'error');
+            } finally {
+                DOM.saveConfigBtn.disabled = false;
+                DOM.saveConfigBtn.innerHTML = 'Save Configuration';
+            }
+        }
+
+        /**
+         * Check bot status
+         */
+        async function checkStatus() {
+            try {
+                const response = await apiFetch('/status');
+                const data = await response.json();
+                DOM.statusValue.textContent = data.status === 'online' ? 'Online' : 'Offline';
+            } catch {
+                DOM.statusValue.textContent = 'Offline';
+            }
+        }
+
+        /* ============================================
+           Event Listeners & Initialization
+           ============================================ */
+
+        DOM.saveConfigBtn.addEventListener('click', saveConfig);
+
+        /**
+         * Initialize application
+         */
+        async function init() {
+            try {
+                initDragDrop();
+                await Promise.all([loadImages(), loadConfig(), checkStatus()]);
+                setInterval(checkStatus, CONFIG.STATUS_CHECK_INTERVAL);
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showAlert('Failed to initialize application', 'error');
+            }
+        }
+
+        /* Start application when DOM is ready */
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
