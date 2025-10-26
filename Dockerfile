@@ -22,6 +22,7 @@ COPY src/ src/
 COPY templates/ templates/
 COPY Training-Data/ Training-Data/
 COPY web_server.py .
+COPY setup_web.py .
 
 # Create directories for runtime data
 RUN mkdir -p logs
