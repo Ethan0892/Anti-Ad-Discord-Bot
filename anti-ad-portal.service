@@ -1,0 +1,18 @@
+[Unit]
+Description=Anti-Ad Admin Portal
+After=network.target
+
+[Service]
+Type=simple
+User=botuser
+WorkingDirectory=/home/botuser/Anti-Ad
+Environment="PATH=/home/botuser/Anti-Ad/venv/bin"
+ExecStart=/home/botuser/Anti-Ad/venv/bin/python3 web_server.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=anti-ad-portal
+
+[Install]
+WantedBy=multi-user.target

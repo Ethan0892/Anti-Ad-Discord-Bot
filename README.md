@@ -117,6 +117,21 @@ notepad config\.env  # Edit with your settings
 START.bat
 ```
 
+### Linux / macOS
+
+```bash
+# 1. Navigate to project
+cd Anti-Ad-Discord-Bot
+
+# 2. Make script executable
+chmod +x START.sh
+
+# 3. Run launcher (installs dependencies & starts bot)
+./START.sh
+```
+
+**Full Linux setup guide:** See [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md)
+
 ### Manual Start (Two Terminals)
 
 **Terminal 1 - Discord Bot:**
@@ -561,30 +576,72 @@ Copy-Item -Recurse Training-Data Training-Data_backup_$(Get-Date -Format 'yyyyMM
 
 ## Deployment
 
-### Development
+### Windows Development
 
 ```powershell
+# Terminal 1 - Bot
 python src/bot.py
+
+# Terminal 2 - Portal
 python web_server.py
 ```
 
-### Production (Recommended)
-
-Use process manager (Windows Task Scheduler, systemd on Linux, etc.):
-
-```powershell
-# Windows Task Scheduler:
-# - Action: Start a program
-# - Program: python.exe
-# - Arguments: src\bot.py
-# - Start in: C:\Users\eirvi\Documents\Bots\Anti-Ad
-```
-
-### Docker (Optional)
+### Linux / macOS Development
 
 ```bash
-docker-compose up
+# Using startup script
+./START.sh
+
+# Or individually
+python3 src/bot.py
+python3 web_server.py
 ```
+
+### Production Deployment
+
+**Windows:**
+- Use Windows Task Scheduler
+- Or use Docker (see below)
+
+**Linux:**
+- Use **systemd services** (recommended)
+- See [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md) for full guide
+- Features: auto-restart, logging, firewall setup
+
+**macOS:**
+- Use launchd or supervisor
+- Similar to Linux deployment
+
+### Docker (All Platforms)
+
+```bash
+# Start both services
+docker-compose up -d
+
+# Stop
+docker-compose down
+
+# View logs
+docker-compose logs -f
+```
+
+**See also:** [.docker_README.md](.docker_README.md) for Docker-specific instructions
+
+---
+
+## Linux Production Setup
+
+For **production deployment on Linux**, see the comprehensive guide:
+
+**→ [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md)**
+
+Includes:
+- ✅ Systemd service setup
+- ✅ Nginx reverse proxy
+- ✅ SSL/TLS with Let's Encrypt
+- ✅ Firewall configuration
+- ✅ Monitoring and backups
+- ✅ Performance tuning
 
 ---
 
@@ -593,6 +650,7 @@ docker-compose up
 - **Version**: 2.0
 - **Status**: Production Ready
 - **Release Date**: October 21, 2025
+- **Platforms**: Windows, Linux, macOS, Docker
 - **Python**: 3.8+
 - **License**: Provided as-is
 
