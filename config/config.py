@@ -2,10 +2,24 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from config directory
+# Load .env - check multiple locations for Docker and local compatibility
 config_dir = Path(__file__).parent
-env_file = config_dir / '.env'
-load_dotenv(env_file)
+root_dir = config_dir.parent
+
+# Try loading from config directory first, then root
+env_paths = [
+    config_dir / '.env',
+    root_dir / '.env',
+    '.env'
+]
+
+for env_file in env_paths:
+    if env_file.exists():
+        load_dotenv(env_file)
+        break
+else:
+    # If no .env found, try loading from environment variables (Docker)
+    load_dotenv()
 
 # Discord Configuration
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')

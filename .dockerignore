@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.Python
+venv/
+env/
+.venv
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+docs/
+
+# Build artifacts
+build/
+dist/
+
+# Logs (except for initial bot.log)
+logs/
+bot.log
+
+# Development
+.env
+.env.example
+PRODUCTION_CHECKLIST.md
+LICENSE
+START.bat
+tests/
+
+# Git directory
+.git/
+.gitignore

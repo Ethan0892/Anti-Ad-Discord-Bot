@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Discord Bot Service
   anti-ad-bot:
     build: .
     container_name: anti-ad-bot
@@ -10,22 +11,56 @@ services:
       MUTED_ROLE_ID: ${MUTED_ROLE_ID}
       APPEAL_CHANNEL_ID: ${APPEAL_CHANNEL_ID}
       LOG_CHANNEL_ID: ${LOG_CHANNEL_ID}
-      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.85}
-      DEBUG_MODE: ${DEBUG_MODE:-false}
+      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.75}
+      PUNISHMENT_TYPE: ${PUNISHMENT_TYPE:-mute}
+      MUTE_DURATION_DAYS: ${MUTE_DURATION_DAYS:-7}
+      TIMEOUT_DURATION_MINUTES: ${TIMEOUT_DURATION_MINUTES:-60}
+      AUTO_DELETE_IMAGE: ${AUTO_DELETE_IMAGE:-true}
+      LOG_DETECTIONS: ${LOG_DETECTIONS:-true}
+      WEB_API_TOKEN: ${WEB_API_TOKEN:-change-this-token}
     volumes:
       - ./Training-Data:/app/Training-Data
       - ./data.json:/app/data.json
-      - ./bot.log:/app/bot.log
+      - ./logs/bot.log:/app/logs/bot.log
     restart: unless-stopped
     networks:
       - bot-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('data.json') or os.path.exists('Training-Data') else 1)"]
+      test: ["CMD", "python", "-c", "import sys; sys.path.insert(0, '.'); from src import bot; print('OK')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  # Web Server Service (optional)
+  web-server:
+    build: .
+    container_name: anti-ad-web
+    command: python web_server.py
+    environment:
+      WEB_API_TOKEN: ${WEB_API_TOKEN:-change-this-token}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./Training-Data:/app/Training-Data
+      - ./data.json:/app/data.json
+      - ./config:/app/config
+    restart: unless-stopped
+    networks:
+      - bot-network
+    depends_on:
+      - anti-ad-bot
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
 networks:
   bot-network:
     driver: bridge
+
+volumes:
+  training-data:
+  bot-data:
