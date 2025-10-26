@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="Anti-Ad Bot training data management interface">
-    <meta name="theme-color" content="#1e3a8a">
     <title>Anti-Ad Bot - Training Data Manager</title>
     <style>
         * {
@@ -434,12 +431,12 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                     <div class="form-group">
                         <label for="threshold">Similarity Threshold (0.0-1.0)</label>
-                        <input type="number" id="threshold" min="0" max="1" step="0.05" value="0.75" required>
+                        <input type="number" id="threshold" min="0" max="1" step="0.05" value="0.75">
                     </div>
 
                     <div class="form-group">
                         <label for="punishmentType">Punishment Type</label>
-                        <select id="punishmentType" required>
+                        <select id="punishmentType">
                             <option value="mute">Mute</option>
                             <option value="timeout">Timeout</option>
                             <option value="kick">Kick</option>
@@ -449,7 +446,7 @@
 
                     <div class="form-group">
                         <label for="firstOffense">First Offense Action</label>
-                        <select id="firstOffense" required>
+                        <select id="firstOffense">
                             <option value="mute">Mute</option>
                             <option value="timeout">Timeout</option>
                             <option value="kick">Kick</option>
@@ -459,7 +456,7 @@
 
                     <div class="form-group">
                         <label for="secondOffense">Second Offense Action</label>
-                        <select id="secondOffense" required>
+                        <select id="secondOffense">
                             <option value="mute">Mute</option>
                             <option value="timeout">Timeout</option>
                             <option value="kick">Kick</option>
@@ -469,7 +466,7 @@
 
                     <div class="form-group">
                         <label for="thirdOffense">Third Offense Action</label>
-                        <select id="thirdOffense" required>
+                        <select id="thirdOffense">
                             <option value="mute">Mute</option>
                             <option value="timeout">Timeout</option>
                             <option value="kick">Kick</option>
@@ -479,17 +476,17 @@
 
                     <div class="form-group">
                         <label for="muteDuration">Mute Duration (Days)</label>
-                        <input type="number" id="muteDuration" min="0" max="30" value="7" required>
+                        <input type="number" id="muteDuration" min="0" max="30" value="7">
                     </div>
 
                     <div class="form-group">
                         <label for="timeoutDuration">Timeout Duration (Minutes)</label>
-                        <input type="number" id="timeoutDuration" min="1" max="10080" value="60" required>
+                        <input type="number" id="timeoutDuration" min="1" max="10080" value="60">
                     </div>
 
                     <div class="form-group">
                         <label for="autoDelete">Auto Delete Images</label>
-                        <select id="autoDelete" required>
+                        <select id="autoDelete">
                             <option value="true">Enabled</option>
                             <option value="false">Disabled</option>
                         </select>
@@ -509,276 +506,146 @@
     </div>
 
     <script>
-        'use strict';
+        // Constants
+        const API_TOKEN = 'your-secure-token-here'; // Set from environment
+        const API_BASE = '/api';
 
-        /* ============================================
-           Configuration & Constants
-           ============================================ */
-        const CONFIG = {
-            API_BASE: '/api',
-            API_TIMEOUT: 10000,
-            STATUS_CHECK_INTERVAL: 30000,
-            ALERT_DURATION: 4000,
-            MAX_RETRIES: 3
-        };
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const imagesList = document.getElementById('imagesList');
+        const imageCountValue = document.getElementById('imageCountValue');
+        const statusValue = document.getElementById('statusValue');
+        const alertContainer = document.getElementById('alertContainer');
+        const saveConfigBtn = document.getElementById('saveConfigBtn');
 
-        /* ============================================
-           DOM Element Caching
-           ============================================ */
-        const DOM = {
-            uploadZone: document.getElementById('uploadZone'),
-            fileInput: document.getElementById('fileInput'),
-            uploadBtn: document.getElementById('uploadBtn'),
-            imagesList: document.getElementById('imagesList'),
-            imageCountValue: document.getElementById('imageCountValue'),
-            statusValue: document.getElementById('statusValue'),
-            alertContainer: document.getElementById('alertContainer'),
-            saveConfigBtn: document.getElementById('saveConfigBtn')
-        };
+        // Drag and drop
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
 
-        /* ============================================
-           Utility Functions
-           ============================================ */
-        
-        /**
-         * Get API token from element or environment
-         */
-        function getApiToken() {
-            const token = document.querySelector('meta[name="api-token"]')?.content || 'your-secure-token-here';
-            if (token === 'your-secure-token-here') {
-                console.warn('Warning: Using default API token. Set via meta tag for production.');
-            }
-            return token;
-        }
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
 
-        /**
-         * Fetch wrapper with timeout and error handling
-         */
-        async function apiFetch(endpoint, options = {}) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CONFIG.API_TIMEOUT);
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        saveConfigBtn.addEventListener('click', saveConfig);
 
-            try {
-                const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
-                    ...options,
-                    signal: controller.signal,
-                    headers: {
-                        'X-API-Token': getApiToken(),
-                        ...options.headers
-                    }
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `HTTP ${response.status}`);
-                }
-
-                return response;
-            } catch (error) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') {
-                    throw new Error('Request timeout');
-                }
-                throw error;
-            }
-        }
-
-        /**
-         * Show alert message with auto-dismiss
-         */
-        function showAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} show`;
-            alert.textContent = message;
-            alert.setAttribute('role', 'alert');
-            alert.setAttribute('aria-live', 'polite');
-
-            DOM.alertContainer.innerHTML = '';
-            DOM.alertContainer.appendChild(alert);
-
-            setTimeout(() => {
-                alert.classList.remove('show');
-                setTimeout(() => alert.remove(), 300);
-            }, CONFIG.ALERT_DURATION);
-        }
-
-        /**
-         * Format file size for display
-         */
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 KB';
-            const sizes = ['B', 'KB', 'MB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-        }
-
-        /**
-         * Format date for display
-         */
-        function formatDate(dateString) {
-            try {
-                return new Date(dateString).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                });
-            } catch {
-                return 'Unknown';
-            }
-        }
-
-        /**
-         * Escape HTML special characters
-         */
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        /* ============================================
-           File Upload Handlers
-           ============================================ */
-
-        /**
-         * Initialize drag and drop listeners
-         */
-        function initDragDrop() {
-            DOM.uploadZone.addEventListener('click', () => DOM.fileInput.click());
-            
-            DOM.uploadZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                DOM.uploadZone.classList.add('dragover');
-            });
-
-            DOM.uploadZone.addEventListener('dragleave', () => {
-                DOM.uploadZone.classList.remove('dragover');
-            });
-
-            DOM.uploadZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                DOM.uploadZone.classList.remove('dragover');
-                handleFiles(e.dataTransfer.files);
-            });
-
-            DOM.fileInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
-            });
-
-            DOM.uploadBtn.addEventListener('click', () => DOM.fileInput.click());
-        }
-
-        /**
-         * Handle file upload
-         */
+        // File upload handler
         async function handleFiles(files) {
             if (files.length === 0) return;
 
             const file = files[0];
-            
-            // Validate file
-            const validExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
-            const fileExt = file.name.split('.').pop().toLowerCase();
-            
-            if (!validExtensions.includes(fileExt)) {
-                showAlert('Invalid file type. Supported: PNG, JPG, JPEG, GIF, WEBP, BMP', 'error');
-                return;
-            }
-
-            if (file.size > 10 * 1024 * 1024) {
-                showAlert('File too large. Maximum: 10MB', 'error');
-                return;
-            }
-
             const formData = new FormData();
             formData.append('file', file);
 
-            DOM.uploadBtn.disabled = true;
-            DOM.uploadBtn.innerHTML = '<span class="spinner"></span> Uploading...';
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<span class="spinner"></span> Uploading...';
 
             try {
-                const response = await apiFetch('/training-images/upload', {
+                const response = await fetch(`${API_BASE}/training-images/upload`, {
                     method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    },
                     body: formData
                 });
 
                 const data = await response.json();
-                showAlert('Image uploaded successfully', 'success');
-                DOM.fileInput.value = '';
-                await loadImages();
+
+                if (response.ok) {
+                    showAlert('Image uploaded successfully!', 'success');
+                    fileInput.value = '';
+                    loadImages();
+                } else {
+                    showAlert(data.error || 'Upload failed', 'error');
+                }
             } catch (error) {
-                showAlert(`Upload error: ${error.message}`, 'error');
+                showAlert('Upload error: ' + error.message, 'error');
             } finally {
-                DOM.uploadBtn.disabled = false;
-                DOM.uploadBtn.innerHTML = 'Upload Image';
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = 'Upload Image';
             }
         }
 
-        /**
-         * Delete training image
-         */
+        // Load training images
+        async function loadImages() {
+            try {
+                const response = await fetch(`${API_BASE}/training-images`);
+                const data = await response.json();
+                const images = data.images || [];
+
+                imageCountValue.textContent = images.length;
+
+                if (images.length === 0) {
+                    imagesList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No training images yet</p>';
+                    return;
+                }
+
+                imagesList.innerHTML = images.map(img => `
+                    <div class="image-item">
+                        <div class="image-info">
+                            <div class="image-name">${img.name}</div>
+                            <div class="image-meta">
+                                ${(img.size / 1024).toFixed(1)} KB • Modified: ${new Date(img.modified).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteImage('${img.name}')">Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Load images error:', error);
+                imagesList.innerHTML = '<p style="color: var(--danger);">Error loading images</p>';
+            }
+        }
+
+        // Delete image
         async function deleteImage(filename) {
             if (!confirm(`Delete ${filename}?`)) return;
 
             try {
-                await apiFetch(`/training-images/${encodeURIComponent(filename)}`, {
-                    method: 'DELETE'
+                const response = await fetch(`${API_BASE}/training-images/${filename}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
                 });
-                showAlert('Image deleted successfully', 'success');
-                await loadImages();
-            } catch (error) {
-                showAlert(`Delete error: ${error.message}`, 'error');
-            }
-        }
 
-        /* ============================================
-           Image & Configuration Loading
-           ============================================ */
-
-        /**
-         * Load and display training images
-         */
-        async function loadImages() {
-            try {
-                const response = await apiFetch('/training-images');
-                const data = await response.json();
-                const images = Array.isArray(data.images) ? data.images : [];
-
-                DOM.imageCountValue.textContent = images.length;
-
-                if (images.length === 0) {
-                    DOM.imagesList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No training images yet</p>';
-                    return;
+                if (response.ok) {
+                    showAlert('Image deleted successfully', 'success');
+                    loadImages();
+                } else {
+                    const data = await response.json();
+                    showAlert(data.error || 'Delete failed', 'error');
                 }
-
-                DOM.imagesList.innerHTML = images.map(img => `
-                    <div class="image-item">
-                        <div class="image-info">
-                            <div class="image-name">${escapeHtml(img.name)}</div>
-                            <div class="image-meta">
-                                ${formatFileSize(img.size)} • Modified: ${formatDate(img.modified)}
-                            </div>
-                        </div>
-                        <button class="btn btn-danger" onclick="deleteImage('${escapeHtml(img.name)}')">Delete</button>
-                    </div>
-                `).join('');
             } catch (error) {
-                DOM.imagesList.innerHTML = `<p style="color: var(--danger);">Error loading images: ${escapeHtml(error.message)}</p>`;
+                showAlert('Delete error: ' + error.message, 'error');
             }
         }
 
-        /**
-         * Load current configuration
-         */
+        // Load configuration
         async function loadConfig() {
             try {
-                const response = await apiFetch('/config');
-                const config = await response.json();
+                const response = await fetch(`${API_BASE}/config`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
 
+                if (!response.ok) return;
+
+                const config = await response.json();
                 document.getElementById('threshold').value = config.SIMILARITY_THRESHOLD || '0.75';
                 document.getElementById('punishmentType').value = config.PUNISHMENT_TYPE || 'mute';
                 document.getElementById('firstOffense').value = config.FIRST_OFFENSE_ACTION || 'mute';
@@ -786,84 +653,90 @@
                 document.getElementById('thirdOffense').value = config.THIRD_OFFENSE_ACTION || 'kick';
                 document.getElementById('muteDuration').value = config.MUTE_DURATION_DAYS || '7';
                 document.getElementById('timeoutDuration').value = config.TIMEOUT_DURATION_MINUTES || '60';
-                document.getElementById('autoDelete').value = config.AUTO_DELETE_IMAGE ? 'true' : 'false';
+                document.getElementById('autoDelete').value = config.AUTO_DELETE_IMAGE || 'true';
             } catch (error) {
-                showAlert(`Config load error: ${error.message}`, 'error');
+                console.error('Load config error:', error);
             }
         }
 
-        /**
-         * Save configuration changes
-         */
+        // Save configuration
         async function saveConfig() {
             const config = {
-                SIMILARITY_THRESHOLD: parseFloat(document.getElementById('threshold').value),
+                SIMILARITY_THRESHOLD: document.getElementById('threshold').value,
                 PUNISHMENT_TYPE: document.getElementById('punishmentType').value,
                 FIRST_OFFENSE_ACTION: document.getElementById('firstOffense').value,
                 SECOND_OFFENSE_ACTION: document.getElementById('secondOffense').value,
                 THIRD_OFFENSE_ACTION: document.getElementById('thirdOffense').value,
-                MUTE_DURATION_DAYS: parseInt(document.getElementById('muteDuration').value, 10),
-                TIMEOUT_DURATION_MINUTES: parseInt(document.getElementById('timeoutDuration').value, 10),
-                AUTO_DELETE_IMAGE: document.getElementById('autoDelete').value === 'true'
+                MUTE_DURATION_DAYS: document.getElementById('muteDuration').value,
+                TIMEOUT_DURATION_MINUTES: document.getElementById('timeoutDuration').value,
+                AUTO_DELETE_IMAGE: document.getElementById('autoDelete').value
             };
 
-            DOM.saveConfigBtn.disabled = true;
-            DOM.saveConfigBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            saveConfigBtn.disabled = true;
+            saveConfigBtn.innerHTML = '<span class="spinner"></span> Saving...';
 
             try {
-                await apiFetch('/config', {
+                const response = await fetch(`${API_BASE}/config`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'X-API-Token': API_TOKEN,
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(config)
                 });
-                showAlert('Configuration saved successfully', 'success');
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Configuration saved successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Save failed', 'error');
+                }
             } catch (error) {
-                showAlert(`Save error: ${error.message}`, 'error');
+                showAlert('Save error: ' + error.message, 'error');
             } finally {
-                DOM.saveConfigBtn.disabled = false;
-                DOM.saveConfigBtn.innerHTML = 'Save Configuration';
+                saveConfigBtn.disabled = false;
+                saveConfigBtn.innerHTML = 'Save Configuration';
             }
         }
 
-        /**
-         * Check bot status
-         */
+        // Show alert message
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => alert.remove(), 300);
+            }, 4000);
+        }
+
+        // Check bot status
         async function checkStatus() {
             try {
-                const response = await apiFetch('/status');
-                const data = await response.json();
-                DOM.statusValue.textContent = data.status === 'online' ? 'Online' : 'Offline';
+                const response = await fetch(`${API_BASE}/status`);
+                if (response.ok) {
+                    statusValue.textContent = 'Online';
+                } else {
+                    statusValue.textContent = 'Offline';
+                }
             } catch {
-                DOM.statusValue.textContent = 'Offline';
+                statusValue.textContent = 'Offline';
             }
         }
 
-        /* ============================================
-           Event Listeners & Initialization
-           ============================================ */
-
-        DOM.saveConfigBtn.addEventListener('click', saveConfig);
-
-        /**
-         * Initialize application
-         */
+        // Initialize
         async function init() {
-            try {
-                initDragDrop();
-                await Promise.all([loadImages(), loadConfig(), checkStatus()]);
-                setInterval(checkStatus, CONFIG.STATUS_CHECK_INTERVAL);
-            } catch (error) {
-                console.error('Initialization error:', error);
-                showAlert('Failed to initialize application', 'error');
-            }
+            loadImages();
+            loadConfig();
+            checkStatus();
+            setInterval(checkStatus, 30000); // Check every 30 seconds
         }
 
-        /* Start application when DOM is ready */
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        init();
     </script>
 </body>
 </html>

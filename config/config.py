@@ -46,6 +46,15 @@ AUTO_DELETE_DELAY = int(os.getenv('AUTO_DELETE_DELAY', 0))  # Seconds to wait be
 LOG_DETECTIONS = os.getenv('LOG_DETECTIONS', 'true').lower() == 'true'
 LOG_APPEALS = os.getenv('LOG_APPEALS', 'true').lower() == 'true'
 
+# Bot Presence Configuration
+# Status type: online, idle, do_not_disturb, invisible
+BOT_STATUS = os.getenv('BOT_STATUS', 'online').lower()  
+
+# Activity type: playing, streaming, listening, watching
+# Examples: "watching for spam" or "playing with filters"
+BOT_ACTIVITY_TYPE = os.getenv('BOT_ACTIVITY_TYPE', 'watching').lower()  
+BOT_ACTIVITY_TEXT = os.getenv('BOT_ACTIVITY_TEXT', 'for spam images')
+
 # Validate required settings
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is required in .env file")

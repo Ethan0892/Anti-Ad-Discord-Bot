@@ -89,13 +89,45 @@ async def on_ready():
     except Exception as e:
         logger.error(f'Failed to sync commands: {e}')
     
-    # Set bot status
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name="for spam images"
+    # Set bot status - now configurable
+    try:
+        # Map status type
+        status_map = {
+            'online': discord.Status.online,
+            'idle': discord.Status.idle,
+            'do_not_disturb': discord.Status.do_not_disturb,
+            'invisible': discord.Status.invisible
+        }
+        status = status_map.get(config.BOT_STATUS, discord.Status.online)
+        
+        # Map activity type
+        activity_type_map = {
+            'playing': discord.ActivityType.playing,
+            'streaming': discord.ActivityType.streaming,
+            'listening': discord.ActivityType.listening,
+            'watching': discord.ActivityType.watching
+        }
+        activity_type = activity_type_map.get(config.BOT_ACTIVITY_TYPE, discord.ActivityType.watching)
+        
+        # Create activity
+        activity = discord.Activity(
+            type=activity_type,
+            name=config.BOT_ACTIVITY_TEXT
         )
-    )
+        
+        # Set presence
+        await bot.change_presence(status=status, activity=activity)
+        
+        logger.info(f'Bot presence set: {config.BOT_STATUS} - {config.BOT_ACTIVITY_TYPE} {config.BOT_ACTIVITY_TEXT}')
+    except Exception as e:
+        logger.error(f'Error setting bot presence: {e}')
+        # Fallback to default
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name="for spam images"
+            )
+        )
     
     # Start background tasks
     cleanup_cache.start()

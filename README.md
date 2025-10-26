@@ -1,6 +1,6 @@
 # Anti-Ad Bot v2.0
 
-**Discord Spam Image Detection Bot with Web Management Interface**
+**Discord Spam Image Detection Bot with Admin Portal**
 
 A production-ready Discord bot that automatically detects and manages spam images using advanced computer vision (5-algorithm hybrid system), with a modern web interface for configuration and training data management.
 
@@ -30,16 +30,19 @@ A production-ready Discord bot that automatically detects and manages spam image
   - Admin commands
   - Comprehensive logging
 
-- **Web Interface** (`templates/index.html`)
+- **Web Interface** (`templates/*.html`)
+  - Admin Portal with user authentication
   - Professional dark blue design
   - Training image management
   - Configuration panel
+  - User management (owner/devs)
   - Real-time bot status
   - Drag & drop uploads
 
 - **REST API** (`web_server.py`)
-  - Flask-based server
-  - Token authentication
+  - Flask-based Admin Portal server
+  - User authentication & management
+  - Token authentication for API
   - Image upload/delete endpoints
   - Configuration management
   - Status monitoring
@@ -126,9 +129,11 @@ python src/bot.py
 python web_server.py
 ```
 
-### Access Web UI
+### Access Admin Portal
 
 Open browser: **http://localhost:5000**
+
+Login with your username and password
 
 ---
 
@@ -246,6 +251,19 @@ LOG_DETECTIONS=true
 LOG_APPEALS=true
 
 # =====================================================================
+# Bot Presence Configuration
+# =====================================================================
+
+# Bot Status: online, idle, do_not_disturb, invisible
+BOT_STATUS=online
+
+# Bot Activity Type: playing, streaming, listening, watching
+BOT_ACTIVITY_TYPE=watching
+
+# What bot shows it's doing (e.g., "for spam", "your server")
+BOT_ACTIVITY_TEXT=for spam images
+
+# =====================================================================
 # Web Server Security
 # =====================================================================
 
@@ -288,32 +306,43 @@ The bot automatically:
 - `/appeal [@user]` - Appeal a mute
 - `/status` - Bot status
 
-### Web Management Interface
+### Admin Portal Interface
 
 Access at: **http://localhost:5000**
 
 **Features:**
-1. **Upload Panel**
+1. **Login & User Management**
+   - Secure authentication
+   - Owner can create users/developers
+   - Role-based access control
+
+2. **Upload Panel**
    - Drag & drop or click to select
    - Supported formats: PNG, JPG, JPEG, GIF, WEBP, BMP
    - Max 10MB per file
 
-2. **Training Images List**
+3. **Training Images List**
    - View all training images
    - See file size and date
    - Delete images individually
 
-3. **Configuration Panel**
+4. **Configuration Panel**
    - Similarity threshold
    - Punishment types
    - Progressive enforcement
    - Duration settings
    - Auto-delete options
+   - Bot presence settings
 
-4. **Status Dashboard**
+5. **Status Dashboard**
    - Bot online/offline status
    - Training image count
    - Real-time information
+
+6. **User Management (Admin Only)**
+   - Add/remove users
+   - Assign roles (owner, dev, user)
+   - Change passwords
 
 ### Web API Endpoints
 
@@ -630,7 +659,9 @@ docker-compose up
 ✅ Configurable Punishments  
 ✅ Progressive Enforcement  
 ✅ Appeal System  
-✅ Web Management Interface  
+✅ Admin Portal with authentication
+✅ User management (owner/devs)
+✅ Role-based access control  
 ✅ Training Data Upload  
 ✅ Real-time Status Monitoring  
 ✅ Admin Commands  

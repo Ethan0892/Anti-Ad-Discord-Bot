@@ -1,5 +1,5 @@
 """
-Web interface for Anti-Ad Bot
+Admin Portal for Anti-Ad Bot
 Modern dark blue UI for uploading training images and managing configuration
 Includes user authentication and management for owner/devs
 """
@@ -21,7 +21,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('web_server')
+logger = logging.getLogger('admin_portal')
 
 app = Flask(__name__)
 
@@ -487,7 +487,7 @@ if __name__ == '__main__':
     # Ensure training data folder exists
     TRAINING_DATA_PATH.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Starting web server on http://localhost:5000")
+    logger.info(f"Starting Admin Portal on http://localhost:5000")
     logger.info(f"API Token: {API_TOKEN}")
     logger.info(f"Training data path: {TRAINING_DATA_PATH}")
     
