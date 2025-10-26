@@ -291,67 +291,6 @@ def delete_image(filename):
         logger.error(f"Error deleting file: {e}")
         return jsonify({'error': f'Delete failed: {str(e)}'}), 500
 
-@app.route('/api/config', methods=['GET'])
-@token_required
-def get_config():
-    """Get current configuration"""
-    try:
-        env_file = CONFIG_PATH / '.env'
-        config_data = {}
-        
-        if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        config_data[key.strip()] = value.strip()
-        
-        return jsonify(config_data), 200
-    
-    except Exception as e:
-        logger.error(f"Error reading config: {e}")
-        return jsonify({'error': f'Failed to read config: {str(e)}'}), 500
-
-@app.route('/api/config', methods=['PUT'])
-@token_required
-def update_config():
-    """Update configuration"""
-    try:
-        data = request.get_json()
-        env_file = CONFIG_PATH / '.env'
-        
-        # Read existing config
-        config_data = {}
-        if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith('#') and '=' in line:
-                        key, value = line.split('=', 1)
-                        config_data[key.strip()] = value.strip()
-        
-        # Update with new values
-        config_data.update(data)
-        
-        # Write back to file
-        with open(env_file, 'w') as f:
-            f.write("# Auto-generated configuration\n")
-            f.write(f"# Last updated: {datetime.now().isoformat()}\n\n")
-            for key, value in sorted(config_data.items()):
-                f.write(f"{key}={value}\n")
-        
-        logger.info("Configuration updated")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Configuration updated successfully'
-        }), 200
-    
-    except Exception as e:
-        logger.error(f"Error updating config: {e}")
-        return jsonify({'error': f'Failed to update config: {str(e)}'}), 500
-
 @app.route('/api/status', methods=['GET'])
 def get_status():
     """Get bot status"""
