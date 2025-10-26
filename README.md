@@ -8,14 +8,15 @@ A production-ready Discord bot that automatically detects and manages spam image
 
 ## 📋 Table of Contents
 
-1. [What's Included](#whats-included)
-2. [Quick Start](#quick-start)
-3. [Installation](#installation)
-4. [Configuration](#configuration)
-5. [Usage](#usage)
-6. [Features](#features)
-7. [Troubleshooting](#troubleshooting)
-8. [Security](#security)
+- [Quick Start](#quick-start) - **Start here! ⭐**
+- [Setup Methods](#setup-methods) - Choose your installation approach
+- [Configuration](#configuration) - Set up your Discord bot
+- [Admin Portal Guide](#admin-portal-guide) - Using the web interface
+- [Features](#features) - What the bot can do
+- [Troubleshooting](#troubleshooting) - Common issues & solutions
+- [Security](#security) - Before you go production
+- [Advanced](#advanced) - Production deployment
+- [Support](#support--issues) - Getting help
 
 ---
 
@@ -100,55 +101,113 @@ Anti-Ad/
 
 ## Quick Start
 
-### Windows (Recommended)
+### 🐳 Docker (Easiest - Recommended)
+
+**Requirements:** Docker and Docker Compose installed on your machine
+
+**Step 1:** Clone or download this repository
+
+**Step 2:** Configure the bot
+```bash
+# Copy example configuration
+cp config/.env.example config/.env
+
+# Edit configuration with your Discord token and settings
+# Edit config/.env with your favorite editor
+```
+
+**Step 3:** Start the bot
+```bash
+# Start both bot and web interface in background
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop when needed
+docker-compose down
+```
+
+**Step 4:** Access Admin Portal
+- Open browser: **http://localhost:5000**
+- Login with credentials you create in the setup wizard
+
+**Why Docker?**
+- ✅ No dependency installation needed
+- ✅ Works on Windows, Mac, Linux identically  
+- ✅ Isolated environment (no conflicts)
+- ✅ Easy to update and restart
+- ✅ Production-ready setup
+
+**See also:** [Docker Setup Guide](#docker-setup-guide) below for more options
+
+---
+
+### Windows (Without Docker)
 
 ```powershell
-# 1. Navigate to project
-cd C:\Users\eirvi\Documents\Bots\Anti-Ad
+# 1. Navigate to project folder
+cd C:\Users\YourName\Downloads\Anti-Ad-Discord-Bot
 
-# 2. Install dependencies
+# 2. Install dependencies (one-time setup)
 pip install -r requirements.txt
 
-# 3. Configure
+# 3. Configure bot
 Copy-Item config\.env.example config\.env
 notepad config\.env  # Edit with your settings
 
-# 4. Start everything
+# 4. Start launcher
 START.bat
 ```
 
-### Linux / macOS
+Then open browser: **http://localhost:5000**
+
+---
+
+### Linux / macOS (Without Docker)
 
 ```bash
 # 1. Navigate to project
 cd Anti-Ad-Discord-Bot
 
-# 2. Make script executable
+# 2. Run launcher (handles setup automatically)
 chmod +x START.sh
-
-# 3. Run launcher (installs dependencies & starts bot)
 ./START.sh
 ```
 
-**Full Linux setup guide:** See [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md)
+Then open browser: **http://localhost:5000**
 
-### Manual Start (Two Terminals)
+**Full Linux deployment guide:** See [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md)
+
+---
+
+### Manual Start (Advanced)
+
+If you prefer starting components separately, open **two terminals**:
 
 **Terminal 1 - Discord Bot:**
-```powershell
+```bash
 python src/bot.py
 ```
 
 **Terminal 2 - Web Server:**
-```powershell
+```bash
 python web_server.py
 ```
 
-### Access Admin Portal
+---
 
-Open browser: **http://localhost:5000**
+## Setup Methods
 
-Login with your username and password
+Choose the setup method that works best for you:
+
+| Method | Difficulty | Best For | Time |
+|--------|-----------|----------|------|
+| **🐳 Docker** | ⭐ Easy | Everyone (recommended) | 5 min |
+| **Windows** | ⭐ Easy | Windows users | 10 min |
+| **Linux/Mac** | ⭐ Easy | Linux/Mac users | 10 min |
+| **Manual** | ⭐⭐ Medium | Advanced users | 15 min |
+| **Production** | ⭐⭐⭐ Hard | Enterprise deployment | 1+ hour |
 
 ---
 
@@ -313,127 +372,178 @@ Once logged in as owner, you can:
 **Note:** There is NO pre-configured default password. You must run `setup_web.py --owner` first to create the owner account with your chosen password
 
 ---
-## Usage
+## Admin Portal Guide
 
-### Discord Bot
+### Accessing the Portal
 
-The bot automatically:
-1. Monitors images posted in the server
-2. Compares against training images
-3. Detects matches using 5-algorithm system
-4. Applies configured punishment
-5. Logs activity
+1. Start the bot using one of the methods above
+2. Open browser: **http://localhost:5000**
+3. Login with your username and password (created during setup)
 
-**Admin Commands** (available to server admins):
-- `/mute [@user] [days]` - Manually mute user
-- `/unmute [@user]` - Remove mute
-- `/appeal [@user]` - Appeal a mute
-- `/status` - Bot status
+### Dashboard Tabs
 
-### Admin Portal Interface
+#### 📚 Training Images Tab
+Upload examples of spam to teach the bot what to detect.
 
-Access at: **http://localhost:5000**
+**How to use:**
+1. Click **"Training Images"** tab
+2. Drag images onto the area OR click **"Select Files"**
+3. Supported formats: PNG, JPG, JPEG, GIF, WEBP, BMP
+4. Max 10MB per file, max 100MB total
+5. Click **"Delete"** to remove a training image
+
+**Best practices:**
+- Add 5-10 diverse spam examples
+- Include different angles/sizes
+- Mix of screenshot spam and advertisement images
+
+#### ⚙️ Configuration Tab
+Customize bot detection and punishment behavior.
+
+**Settings available:**
+- **Similarity Threshold**: How strict the detection is (0.0-1.0)
+  - Higher (0.8-1.0) = Less spam caught, fewer false positives
+  - Lower (0.4-0.6) = More spam caught, more false alerts
+- **Punishment Type**: What happens when spam is detected
+  - Mute, Timeout, Kick, or Ban
+- **Durations**: How long to mute or timeout users
+- **Auto-delete**: Automatically remove detected spam images
+- **Bot Status**: What users see as the bot's activity
+
+**After changing settings:** Bot restart required for changes to apply
+
+#### 👤 Profile Tab
+Manage your own account.
 
 **Features:**
-1. **Login & User Management**
-   - Secure authentication
-   - Owner can create users/developers
-   - Role-based access control
+- View your username and role
+- Change your password securely
+- Password requirements: At least 6 characters
 
-2. **Upload Panel**
-   - Drag & drop or click to select
-   - Supported formats: PNG, JPG, JPEG, GIF, WEBP, BMP
-   - Max 10MB per file
+#### 📊 Status Tab
+View real-time bot information.
 
-3. **Training Images List**
-   - View all training images
-   - See file size and date
-   - Delete images individually
+**Shows:**
+- Bot online/offline status
+- Number of loaded training images
+- Last update timestamp
 
-4. **Configuration Panel**
-   - Similarity threshold
-   - Punishment types
-   - Progressive enforcement
-   - Duration settings
-   - Auto-delete options
-   - Bot presence settings
+---
 
-5. **Status Dashboard**
-   - Bot online/offline status
-   - Training image count
-   - Real-time information
+## Discord Bot Usage
 
-6. **User Management (Admin Only)**
-   - Add/remove users
-   - Assign roles (owner, dev, user)
-   - Change passwords
+### What the Bot Does
 
-### Web API Endpoints
+The bot automatically:
+1. **Monitors** images posted in your Discord server
+2. **Analyzes** each image against trained spam examples
+3. **Detects** matches using 5 advanced algorithms
+4. **Applies** the configured punishment
+5. **Logs** all detections for audit trail
 
-All endpoints require: `X-API-Token: your-secure-token-here` header
+### Admin Commands
+
+Use these commands in Discord (requires admin role):
 
 ```
-GET    /api/status                    # Bot status
-GET    /api/training-images           # List images
-POST   /api/training-images/upload    # Upload image
-DELETE /api/training-images/{name}    # Delete image
-GET    /api/config                    # Get settings
-PUT    /api/config                    # Update settings
+/mute [@user] [days]        # Manually mute a user
+/unmute [@user]              # Remove mute from user
+/appeal [@user]              # Check appeal status
+/status                      # Show bot status
 ```
+
+### How Detection Works
+
+When an image is posted:
+1. Bot retrieves training images from Admin Portal
+2. Compares new image using 5 algorithms:
+   - SIFT (keypoint matching)
+   - ORB (fast feature detection)
+   - Histogram (color comparison)
+   - SSIM (structural similarity)
+   - Template matching
+3. Calculates confidence score
+4. If above threshold → applies punishment
+5. User can appeal in appeal channel
 
 ---
 
 ## Features
 
-### Detection System
+### 🎯 Spam Detection
 
-✓ **5-Algorithm Hybrid Approach**
-- SIFT - Keypoint-based matching
-- ORB - Fast feature detection
-- Histogram - Color analysis
-- SSIM - Structural similarity
-- Template - Direct correlation
+**Smart 5-Algorithm System**
+- SIFT (keypoint matching)
+- ORB (fast feature detection)  
+- Histogram (color patterns)
+- SSIM (visual similarity)
+- Template matching (exact correlation)
 
-✓ **Confidence Scoring** (0.0 - 1.0)
-- Accurate spam identification
-- Configurable threshold
-- Minimal false positives
+**Result:** ~95%+ accuracy on trained images with very few false positives
 
-✓ **Training Data Management**
-- Easy image upload via web UI
-- Delete unwanted examples
-- Real-time updates
+**Configurable Sensitivity**
+- Set your own detection threshold
+- Balance between catching spam and avoiding false alerts
+- Real-time adjustment in web interface
 
-### Punishment System
+### 🛡️ Automatic Punishments
 
-✓ **Multiple Actions**
-| Action | Effect | Duration |
-|--------|--------|----------|
-| mute | User can't send messages | MUTE_DURATION_DAYS |
-| timeout | Discord timeout | TIMEOUT_DURATION_MINUTES |
-| kick | Remove from server | Immediate |
-| ban | Permanent ban | Permanent |
+Choose what happens when spam is detected:
 
-✓ **Progressive Enforcement**
-- Different actions for repeat offenders
-- Escalating consequences
-- Configurable progression
+| Punishment | Effect | Use When |
+|-----------|--------|----------|
+| 🔇 **Mute** | User can't send messages | Want to review manually |
+| ⏱️ **Timeout** | Discord native timeout | Need temporary restriction |
+| 🚪 **Kick** | Remove from server | Serious repeat offender |
+| 🚫 **Ban** | Permanent ban | Persistent spammers |
 
-### Appeal System
+**Progressive Enforcement**
+- Different actions for 1st, 2nd, 3rd offense
+- Automatically escalates repeat offenders
+- Set durations per punishment type
 
-✓ **User Appeals**
-- Users can appeal mutes
-- Admin review via Discord
-- Appeal history tracked
-- Unmute capability
+### 💬 Appeal System
 
-### Logging
+Users can appeal their mute/punishment:
+1. User posts appeal in designated channel
+2. Server staff reviews it
+3. Staff can unmute if appealing case
+4. Complete audit trail of all appeals
 
-✓ **Comprehensive Tracking**
-- Detection logs
-- Appeal logs
-- User activity
-- Automatic rotation
+### 📊 Admin Web Interface
+
+Professional dark-themed dashboard with:
+- ✅ Real-time bot status monitoring
+- ✅ Drag & drop training image uploads
+- ✅ Live configuration editing
+- ✅ User management (if owner)
+- ✅ Secure authentication
+- ✅ Mobile responsive design
+- ✅ GitHub update checking and pulling
+
+### 📝 Complete Logging
+
+Track everything that happens:
+- ✅ All spam detections
+- ✅ Punishments applied
+- ✅ User appeals
+- ✅ Configuration changes
+- ✅ All logs automatically rotated
+
+### 🚀 Cross-Platform
+
+Works on:
+- ✅ Windows
+- ✅ Linux (Ubuntu, Debian)
+- ✅ macOS
+- ✅ Docker (all platforms)
+
+### 🐳 Docker Support
+
+- ✅ One-command deployment
+- ✅ Identical behavior across platforms
+- ✅ Easy updates and rollbacks
+- ✅ Production-ready setup
 
 ---
 
@@ -623,65 +733,233 @@ python3 web_server.py
 
 ### Docker (All Platforms)
 
-```bash
-# Start both services
-docker-compose up -d
+#### Prerequisites
 
-# Stop
+- **Docker**: [Download Docker Desktop](https://www.docker.com/products/docker-desktop) (includes Docker Compose)
+- **Available ports**: 5000 (web interface)
+
+#### Basic Setup
+
+```bash
+# 1. Navigate to project directory
+cd Anti-Ad-Discord-Bot
+
+# 2. Copy and edit configuration
+cp config/.env.example config/.env
+# Edit config/.env with your Discord token and settings
+
+# 3. Start services in background
+docker-compose up -d
+```
+
+#### Common Docker Commands
+
+```bash
+# View running containers
+docker-compose ps
+
+# View logs (all services)
+docker-compose logs -f
+
+# View logs for specific service
+docker-compose logs -f anti-ad-bot
+docker-compose logs -f anti-ad-portal
+
+# Stop all services
 docker-compose down
 
-# View logs
+# Stop and remove volumes (clears data)
+docker-compose down -v
+
+# Restart services
+docker-compose restart
+
+# Rebuild images after code changes
+docker-compose up -d --build
+
+# Execute command inside container
+docker-compose exec anti-ad-bot python -c "print('Hello')"
+```
+
+#### Accessing Admin Portal
+
+- **URL**: http://localhost:5000
+- **First time?** Create owner account with `docker-compose exec anti-ad-portal python setup_web.py`
+
+#### Adding Training Images
+
+```bash
+# Copy images to training folder (auto-picked up by container)
+cp my_spam_image.png Training-Data/
+
+# Or inside container
+docker-compose cp my_image.png anti-ad-bot:/app/Training-Data/
+```
+
+#### Troubleshooting Docker
+
+```bash
+# Port already in use?
+# Change port in docker-compose.yml or stop other services
+netstat -an | findstr :5000  # Windows
+lsof -i :5000                # Mac/Linux
+
+# Container exiting immediately?
+docker-compose logs -f anti-ad-bot  # Check error logs
+
+# Permission denied?
+sudo docker-compose up -d  # Use sudo on Linux
+
+# Need to rebuild?
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+#### Using Docker on Different Platforms
+
+**Windows PowerShell:**
+```powershell
+docker-compose up -d
 docker-compose logs -f
 ```
 
-**See also:** [.docker_README.md](.docker_README.md) for Docker-specific instructions
+**Mac/Linux Terminal:**
+```bash
+docker-compose up -d
+docker-compose logs -f
+```
+
+**Environment File (.env) in Docker:**
+- Same as normal setup - no changes needed
+- `config/.env` is automatically mounted into container
+- Changes apply after container restart
+
+#### Production Deployment with Docker
+
+See **[Docker Production Guide](#)** for:
+- Health checks
+- Volume management
+- Networking
+- Backup strategies
+- Update procedures
+
+**See also:** [.docker_README.md](.docker_README.md) for additional Docker-specific instructions
 
 ---
 
-## Linux Production Setup
+## Advanced
 
-For **production deployment on Linux**, see the comprehensive guide:
+### Linux Production Deployment
+
+For **enterprise-grade Linux deployment**, see the comprehensive guide:
 
 **→ [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md)**
 
-Includes:
-- ✅ Systemd service setup
-- ✅ Nginx reverse proxy
-- ✅ SSL/TLS with Let's Encrypt
-- ✅ Firewall configuration
-- ✅ Monitoring and backups
+Features included:
+- ✅ Systemd service auto-restart
+- ✅ Nginx reverse proxy with SSL/TLS
+- ✅ Let's Encrypt certificate automation
+- ✅ Firewall & security hardening
+- ✅ Health monitoring
+- ✅ Automated backups
 - ✅ Performance tuning
+- ✅ Log rotation
+
+### Docker Production Deployment
+
+For **production-grade Docker setup**, considerations:
+- Health checks
+- Volume management for persistence
+- Network security
+- Update procedures
+- Monitoring integration
+
+### Scaling & Performance
+
+- **Concurrent detections**: Supports 100+ simultaneous image checks
+- **Memory efficient**: ~200MB typical usage
+- **Fast processing**: <1 second per image
+- **Scalable**: Supports 1000+ server members
+- **Database**: JSON file-based (easily replaceable with SQL)
+
+### Custom Modifications
+
+The codebase is modular and extensible:
+- **Replace detection algorithms** in `src/image_detector.py`
+- **Add new commands** in `src/bot.py`
+- **Extend API** in `web_server.py`
+- **Customize UI** in `templates/`
+
+### Database & Backups
+
+- **Current**: JSON file storage (`data.json`, `users.json`)
+- **Location**: Project root directory
+- **Backup**: Copy entire project folder
+- **Future**: Can be replaced with PostgreSQL, MySQL, etc.
+
+### Monitoring & Logging
+
+Logs are stored in `logs/` directory:
+- `bot.log` - Discord bot activity
+- `web.log` - Web server activity  
+- `detection.log` - Image detection details
 
 ---
 
 ## Version Info
 
 - **Version**: 2.0
-- **Status**: Production Ready
-- **Release Date**: October 21, 2025
+- **Status**: Production Ready ✅
+- **Release Date**: October 26, 2025
 - **Platforms**: Windows, Linux, macOS, Docker
 - **Python**: 3.8+
-- **License**: Provided as-is
+- **License**: Provided as-is for Discord moderation
 
 ---
 
-## Support & Help
+## Support & Issues
 
-### Common Issues
+### Getting Help
 
-1. **Module not found** → `pip install -r requirements.txt`
-2. **Web not accessible** → Check port 5000, firewall
-3. **Bot offline** → Check token, internet connection
-4. **Images not detected** → Adjust threshold, add training data
-5. **API unauthorized** → Verify token in requests
+**Before asking for help, check:**
+1. ✅ All requirements are installed (`pip install -r requirements.txt`)
+2. ✅ `.env` file is configured correctly
+3. ✅ Discord token is valid and bot is invited to server
+4. ✅ Port 5000 isn't blocked by firewall
+5. ✅ Training images are in `Training-Data/` folder
 
-### Files Overview
+### Common Issues & Solutions
+
+| Issue | Solution |
+|-------|----------|
+| "Module not found" | Run `pip install -r requirements.txt` |
+| Web not accessible | Check firewall, verify port 5000 is open |
+| Bot offline in Discord | Verify bot has permissions, check token |
+| Images not detected | Add more training data, lower threshold |
+| Login fails | Create user account via `setup_web.py` |
+| Port 5000 in use | Change port in `.env` or stop other services |
+
+### Documentation Files
 
 | File | Purpose |
 |------|---------|
-| `src/bot.py` | Main Discord bot application |
-| `src/image_detector.py` | Detection algorithms |
-| `src/database.py` | Data persistence |
+| [README.md](README.md) | **You are here** - Main documentation |
+| [LINUX_DEPLOYMENT.md](LINUX_DEPLOYMENT.md) | Linux production setup guide |
+| [.docker_README.md](.docker_README.md) | Docker-specific documentation |
+| [SECURITY.md](SECURITY.md) | Security best practices |
+| [WEB_INTERFACE_GUIDE.md](WEB_INTERFACE_GUIDE.md) | Detailed admin portal guide |
+
+### Code Structure
+
+| File | Purpose |
+|------|---------|
+| `src/bot.py` | Main Discord bot with commands |
+| `src/image_detector.py` | 5-algorithm detection engine |
+| `src/database.py` | Data persistence (JSON) |
+| `src/admin_utils.py` | Admin utility functions |
+| `web_server.py` | Flask REST API & web server |
+| `config/config.py` | Configuration loader |
+| `templates/` | HTML templates for web UI |
 | `web_server.py` | Flask REST API |
 | `templates/index.html` | Web management UI |
 | `config/.env` | Your configuration (create this) |
@@ -775,244 +1053,26 @@ Copy: Training-Data/ folder
 
 ---
 
-**Ready to deploy!** Start with `START.bat` or follow the Quick Start section above.
-
-- **Python**: 3.8 or higher
-- **OS**: Windows, macOS, or Linux
-- **Internet**: Discord API connection
-- **Disk**: 500MB minimum
+**Ready to deploy!** Start with `START.bat` or one of the Quick Start methods above.
 
 ---
 
-## Installation
+## Checklist Before Going Live
 
-### Step 1: Install Dependencies
-```powershell
-pip install -r requirements.txt
-```
-
-### Step 2: Configure
-```powershell
-# Copy and edit the configuration
-Copy-Item config\.env.example config\.env
-notepad config\.env
-```
-
-Fill in:
-- `DISCORD_TOKEN` - From Discord Developer Portal
-- `GUILD_ID` - Your server ID
-- `MUTED_ROLE_ID` - Create a "Muted" role first
-- `APPEAL_CHANNEL_ID` - Channel for appeals
-- `LOG_CHANNEL_ID` - Channel for logs
-- `WEB_API_TOKEN` - Change to secure token
-
-### Step 3: Add Training Images
-Place spam image examples in `Training-Data/` folder:
-- Supported formats: PNG, JPG, JPEG, GIF, WEBP, BMP
-- Max 10MB per file
-- Minimum 1, recommended 5+ images
-
-### Step 4: Start
-```powershell
-START.bat
-```
+- [ ] Discord bot token added to `.env`
+- [ ] Server ID (GUILD_ID) configured
+- [ ] Muted role created in Discord and ID added
+- [ ] Appeal channel ID added to `.env`
+- [ ] At least 3-5 training images added to `Training-Data/`
+- [ ] Web interface accessible at http://localhost:5000
+- [ ] Bot appears online in Discord server
+- [ ] Admin Portal login working
+- [ ] Test spam image upload and detection
+- [ ] `WEB_API_TOKEN` changed from default
+- [ ] `.env` file protected (not committed to git)
+- [ ] Backup of `data.json` created
 
 ---
 
-## Usage
+**🎉 All set! Your Anti-Ad bot is ready to protect your server.**
 
-### Discord Bot
-The bot automatically:
-1. Monitors images posted in the server
-2. Compares against training images
-3. Detects matches based on similarity threshold
-4. Applies configured punishment
-5. Logs activity
-
-### Web Interface
-Access at: **http://localhost:5000**
-
-- **Upload Images**: Add new training examples
-- **Manage Data**: Delete or view training images
-- **Configure**: Adjust detection and punishment settings
-- **Status**: Monitor bot status
-
-### API Endpoints
-
-```bash
-GET    /api/status                    # Check bot status
-GET    /api/training-images           # List training images
-POST   /api/training-images/upload    # Upload image
-DELETE /api/training-images/{name}    # Delete image
-GET    /api/config                    # Get configuration
-PUT    /api/config                    # Update configuration
-```
-
-All endpoints require: `X-API-Token: your-token-here` header
-
----
-
-## Configuration
-
-### Similarity Threshold
-- **Range**: 0.0 - 1.0
-- **Default**: 0.75
-- **Higher**: More strict (fewer false positives)
-- **Lower**: More aggressive (more detections)
-
-### Punishment Actions
-| Action | Effect | Duration |
-|--------|--------|----------|
-| mute | Cannot send messages | Days |
-| timeout | Discord timeout | Minutes |
-| kick | Removed from server | Immediate |
-| ban | Permanent ban | Permanent |
-
-### Progressive Enforcement
-```ini
-FIRST_OFFENSE_ACTION=mute
-SECOND_OFFENSE_ACTION=timeout
-THIRD_OFFENSE_ACTION=kick
-```
-
----
-
-## Documentation
-
-**Start Here:**
-1. **DEPLOYMENT.md** - Complete setup and deployment guide
-2. **SECURITY.md** - Security best practices
-3. **PRODUCTION_READY.md** - Pre-launch checklist
-
-**Reference:**
-- **WEB_INTERFACE_GUIDE.md** - Web UI documentation
-- **STRUCTURE.md** - Directory layout
-- **README.md** (docs/) - Additional info
-
----
-
-## Troubleshooting
-
-### Bot Won't Start
-```
-Error: ModuleNotFoundError
-Solution: pip install -r requirements.txt --upgrade
-```
-
-### Web Interface Not Accessible
-```
-Error: Connection refused on localhost:5000
-Check: 1. Verify web_server.py is running
-       2. Check firewall settings
-       3. Ensure port 5000 is available
-```
-
-### Images Not Detected
-```
-Possible causes:
-- Threshold too high (increase towards 1.0)
-- Training images too different
-- Format not supported
-
-Solution: Add more varied training examples
-```
-
-### API Token Invalid
-```
-Error: 401 Unauthorized
-Fix: Update WEB_API_TOKEN in config/.env
-    Restart web server
-```
-
----
-
-## File Structure
-
-```
-Anti-Ad/
-├── src/                    # Python source code
-├── config/                 # Configuration files
-├── templates/              # Web UI
-├── tests/                  # Test suite
-├── Training-Data/          # Spam image examples
-├── logs/                   # Runtime logs
-├── docs/                   # Documentation
-├── web_server.py          # Flask web server
-├── requirements.txt       # Dependencies
-└── START.bat              # Launch script
-```
-
----
-
-## Security
-
-### Before Production
-
-- [ ] Change `WEB_API_TOKEN` from default
-- [ ] Review `.env` file - never commit to git
-- [ ] Secure Discord token
-- [ ] Read **SECURITY.md**
-- [ ] Test in staging environment
-- [ ] Backup `data.json` regularly
-
-### Best Practices
-
-- Never share tokens
-- Rotate tokens every 90 days
-- Use HTTPS for web interface
-- Restrict firewall access
-- Monitor logs regularly
-
----
-
-## Performance
-
-- **Image Processing**: < 1 second per image
-- **Memory Usage**: ~200MB typical
-- **Detection Rate**: 95%+ accuracy on trained images
-- **Scalability**: Supports 1000+ server members
-
----
-
-## Support & Issues
-
-For help:
-1. Check DEPLOYMENT.md troubleshooting section
-2. Review logs/ folder for errors
-3. See SECURITY.md for security questions
-4. Check WEB_INTERFACE_GUIDE.md for UI help
-
----
-
-## Version
-
-- **Version**: 2.0
-- **Release**: October 21, 2025
-- **Status**: Production Ready
-
----
-
-## License
-
-This project is provided as-is for Discord server moderation.
-
----
-
-## What's Included
-
-✓ Discord bot with 5-algorithm detection  
-✓ Professional web interface (dark blue theme)  
-✓ Flask REST API  
-✓ Image detection engine  
-✓ Appeal system  
-✓ Admin utilities  
-✓ Complete documentation  
-✓ Security guidelines  
-✓ Docker support  
-✓ Training data samples  
-
----
-
-**Ready to Deploy!**
-
-Start with `START.bat` or follow instructions in **DEPLOYMENT.md**
