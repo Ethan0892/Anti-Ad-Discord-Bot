@@ -22,7 +22,6 @@ COPY src/ src/
 COPY templates/ templates/
 COPY Training-Data/ Training-Data/
 COPY web_server.py .
-COPY .env.example .env.example
 
 # Create directories for runtime data
 RUN mkdir -p logs
