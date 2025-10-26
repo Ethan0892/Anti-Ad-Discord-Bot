@@ -159,6 +159,25 @@ def logout():
         logger.info(f"User logged out: {username}")
     return redirect(url_for('login'))
 
+@app.route('/Training-Data/<filename>')
+@login_required
+def serve_training_image(filename):
+    """Serve training images"""
+    filename = secure_filename(filename)
+    file_path = TRAINING_DATA_PATH / filename
+    
+    if not file_path.exists():
+        return jsonify({'error': 'File not found'}), 404
+    
+    if not allowed_file(filename):
+        return jsonify({'error': 'Invalid file type'}), 403
+    
+    try:
+        return send_from_directory(str(TRAINING_DATA_PATH), filename)
+    except Exception as e:
+        logger.error(f"Error serving image {filename}: {e}")
+        return jsonify({'error': 'Error serving file'}), 500
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
@@ -466,6 +485,149 @@ def api_change_password():
     logger.info(f"Password changed for user: {username}")
     
     return jsonify({'success': True, 'message': 'Password changed successfully'}), 200
+
+@app.route('/api/updates/check', methods=['GET'])
+@login_required
+def check_updates():
+    """Check for updates from GitHub"""
+    try:
+        import subprocess
+        
+        # Check git status
+        result = subprocess.run(
+            ['git', 'fetch', 'origin'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT_PATH)
+        )
+        
+        # Compare local vs remote
+        result = subprocess.run(
+            ['git', 'rev-list', '--count', 'HEAD..origin/main'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT_PATH)
+        )
+        
+        commits_behind = int(result.stdout.strip() or '0')
+        
+        # Get latest commit info
+        result = subprocess.run(
+            ['git', 'log', '-1', '--format=%B', 'origin/main'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=str(ROOT_PATH)
+        )
+        
+        latest_commit = result.stdout.strip() or 'No commit info'
+        
+        return jsonify({
+            'update_available': commits_behind > 0,
+            'commits_behind': commits_behind,
+            'latest_commit': latest_commit
+        }), 200
+    except Exception as e:
+        logger.error(f"Error checking updates: {e}")
+        return jsonify({'update_available': False, 'error': str(e)}), 200
+
+@app.route('/api/updates/pull', methods=['POST'])
+@admin_required
+def pull_updates():
+    """Pull latest updates from GitHub"""
+    try:
+        import subprocess
+        
+        result = subprocess.run(
+            ['git', 'pull', 'origin', 'main'],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(ROOT_PATH)
+        )
+        
+        if result.returncode == 0:
+            logger.info("Successfully pulled latest updates from GitHub")
+            return jsonify({
+                'success': True,
+                'message': 'Updates pulled successfully. Please restart the bot.'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Pull failed: {result.stderr}'
+            }), 400
+    except Exception as e:
+        logger.error(f"Error pulling updates: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/config', methods=['GET'])
+@login_required
+def get_config():
+    """Get current configuration"""
+    try:
+        env_file = CONFIG_PATH / '.env'
+        config_data = {}
+        
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        # Hide sensitive values
+                        if any(x in key.upper() for x in ['TOKEN', 'PASSWORD', 'SECRET', 'KEY']):
+                            value = '***HIDDEN***'
+                        config_data[key] = value
+        
+        return jsonify(config_data), 200
+    except Exception as e:
+        logger.error(f"Error reading config: {e}")
+        return jsonify({'error': f'Failed to read config: {str(e)}'}), 500
+
+@app.route('/api/config', methods=['PUT'])
+@admin_required
+def update_config():
+    """Update configuration (admin only)"""
+    try:
+        data = request.get_json()
+        env_file = CONFIG_PATH / '.env'
+        
+        # Read existing config
+        config_data = {}
+        if env_file.exists():
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        config_data[key.strip()] = value.strip()
+        
+        # Update with new values (skip hidden values)
+        for key, value in data.items():
+            if value != '***HIDDEN***':
+                config_data[key] = value
+        
+        # Write back to file
+        with open(env_file, 'w') as f:
+            f.write("# Auto-generated configuration\n")
+            f.write(f"# Last updated: {datetime.now().isoformat()}\n\n")
+            for key, value in sorted(config_data.items()):
+                f.write(f"{key}={value}\n")
+        
+        logger.info(f"Configuration updated by {session.get('username')}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Configuration updated successfully. Restart bot to apply changes.'
+        }), 200
+    except Exception as e:
+        logger.error(f"Error updating config: {e}")
+        return jsonify({'error': f'Failed to update config: {str(e)}'}), 500
 
 @app.errorhandler(413)
 def request_entity_too_large(error):

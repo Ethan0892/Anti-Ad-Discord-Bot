@@ -304,9 +304,17 @@
             <p>Welcome back, {{ username }}!</p>
         </div>
 
+        <div id="updateNotification" style="display: none; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.5); border-radius: 6px; padding: 12px; margin-bottom: 20px; color: #93c5fd;">
+            <strong>Updates Available!</strong> 
+            <span id="updateCommits" style="margin-left: 10px;"></span>
+            <button onclick="pullUpdates()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-left: 15px; float: right;">Pull Updates</button>
+            <div style="clear: both;"></div>
+        </div>
+
         <div class="tabs">
             <button class="tab active" onclick="switchTab('training')">Training Images</button>
             <button class="tab" onclick="switchTab('config')">Configuration</button>
+            <button class="tab" onclick="switchTab('profile')">Profile</button>
             <button class="tab" onclick="switchTab('status')">Status</button>
         </div>
 
@@ -334,8 +342,37 @@
         <div id="config" class="tab-content">
             <div class="card">
                 <h2 style="color: #60a5fa; margin-bottom: 15px;">Bot Configuration</h2>
-                <p style="color: #94a3b8; margin-bottom: 20px;">Edit bot settings here</p>
+                <p style="color: #94a3b8; margin-bottom: 20px;">Edit bot settings here. Restart the bot to apply changes.</p>
                 <div id="configForm" class="loading">Loading configuration...</div>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profile" class="tab-content">
+            <div class="card">
+                <h2 style="color: #60a5fa; margin-bottom: 15px;">Your Profile</h2>
+                <div style="background: rgba(30, 58, 138, 0.3); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                    <p style="color: #94a3b8; margin-bottom: 5px;">Username:</p>
+                    <p style="color: #60a5fa; font-size: 16px; margin-bottom: 15px;" id="profileUsername">{{ username }}</p>
+                    <p style="color: #94a3b8; margin-bottom: 5px;">Role:</p>
+                    <p style="color: #60a5fa; font-size: 16px;">{{ role.upper() }}</p>
+                </div>
+                <form onsubmit="changePassword(event)" style="margin-bottom: 20px;">
+                    <h3 style="color: #93c5fd; margin-bottom: 15px;">Change Password</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #94a3b8; margin-bottom: 5px;">Current Password:</label>
+                        <input type="password" id="currentPassword" required style="width: 100%; padding: 8px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 4px; color: #e2e8f0;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #94a3b8; margin-bottom: 5px;">New Password:</label>
+                        <input type="password" id="newPassword" required style="width: 100%; padding: 8px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 4px; color: #e2e8f0;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; color: #94a3b8; margin-bottom: 5px;">Confirm Password:</label>
+                        <input type="password" id="confirmPassword" required style="width: 100%; padding: 8px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 4px; color: #e2e8f0;">
+                    </div>
+                    <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Update Password</button>
+                </form>
             </div>
         </div>
 
@@ -367,6 +404,7 @@
             // Load content if needed
             if (tabName === 'training') loadImages();
             else if (tabName === 'config') loadConfig();
+            else if (tabName === 'profile') loadProfile();
             else if (tabName === 'status') loadStatus();
         }
 
@@ -432,7 +470,7 @@
                         const item = document.createElement('div');
                         item.className = 'image-item';
                         item.innerHTML = `
-                            <img src="/Training-Data/${img.name}" alt="${img.name}">
+                            <img src="/Training-Data/${img.name}" alt="${img.name}" onerror="this.src='/Training-Data/${img.name}?retry=true'">
                             <div class="image-item-name">${img.name}</div>
                             <button class="btn-delete" onclick="deleteImage('${img.name}')">Delete</button>
                         `;
@@ -464,7 +502,118 @@
 
         function loadConfig() {
             const form = document.getElementById('configForm');
-            form.innerHTML = '<p style="color: #94a3b8;">Configuration loading...</p>';
+            form.innerHTML = '<div class="loading">Loading configuration...</div>';
+
+            fetch('/api/config')
+                .then(r => r.json())
+                .then(data => {
+                    let html = '<form onsubmit="saveConfig(event)">';
+                    
+                    // Create form fields for each config value
+                    for (const [key, value] of Object.entries(data)) {
+                        const isHidden = value === '***HIDDEN***';
+                        html += `
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; color: #94a3b8; margin-bottom: 5px;">${key}:</label>
+                                <input type="${isHidden ? 'password' : 'text'}" 
+                                       name="${key}" 
+                                       value="${isHidden ? '' : value}" 
+                                       ${isHidden ? 'placeholder="***HIDDEN*** (leave blank to keep unchanged)"' : ''}
+                                       style="width: 100%; padding: 8px; background: rgba(30, 58, 138, 0.5); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 4px; color: #e2e8f0;">
+                            </div>
+                        `;
+                    }
+                    
+                    html += '<button type="submit" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Save Configuration</button>';
+                    html += '<p style="color: #94a3b8; margin-top: 15px; font-size: 12px;">⚠ Changes require bot restart to take effect</p>';
+                    html += '</form>';
+                    
+                    form.innerHTML = html;
+                })
+                .catch(err => {
+                    form.innerHTML = `<p style="color: #fca5a5;">Error loading configuration: ${err.message}</p>`;
+                });
+        }
+
+        function saveConfig(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            // Remove empty fields (to preserve hidden values)
+            Object.keys(data).forEach(key => {
+                if (data[key] === '') delete data[key];
+            });
+
+            fetch('/api/config', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', 'Configuration saved! Restart the bot to apply changes.');
+                    loadConfig();
+                } else {
+                    showMessage('error', data.error || 'Failed to save configuration');
+                }
+            })
+            .catch(err => showMessage('error', `Error: ${err.message}`));
+        }
+
+        function loadProfile() {
+            fetch('/api/profile')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('profileUsername').textContent = data.username;
+                })
+                .catch(err => console.error('Error loading profile:', err));
+        }
+
+        function changePassword(event) {
+            event.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                showMessage('error', 'New passwords do not match!');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showMessage('error', 'Password must be at least 6 characters!');
+                return;
+            }
+
+            fetch('/api/profile/password', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', 'Password changed successfully!');
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showMessage('error', data.error || 'Failed to change password');
+                }
+            })
+            .catch(err => showMessage('error', `Error: ${err.message}`));
         }
 
         function loadStatus() {
@@ -491,6 +640,48 @@
                 });
         }
 
+        function checkUpdates() {
+            fetch('/api/updates/check')
+                .then(r => r.json())
+                .then(data => {
+                    const notification = document.getElementById('updateNotification');
+                    if (data.update_available) {
+                        document.getElementById('updateCommits').textContent = `${data.commits_behind} new commit${data.commits_behind > 1 ? 's' : ''} available`;
+                        notification.style.display = 'block';
+                    } else {
+                        notification.style.display = 'none';
+                    }
+                })
+                .catch(err => console.error('Error checking updates:', err));
+        }
+
+        function pullUpdates() {
+            if (!confirm('Pull latest updates from GitHub? The bot may need to be restarted.')) return;
+
+            document.querySelector('[onclick="pullUpdates()"]').disabled = true;
+            document.querySelector('[onclick="pullUpdates()"]').textContent = 'Pulling...';
+
+            fetch('/api/updates/pull', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', 'Updates pulled successfully! Restart the bot to apply changes.');
+                    setTimeout(() => checkUpdates(), 1000);
+                } else {
+                    showMessage('error', data.error || 'Failed to pull updates');
+                }
+                document.querySelector('[onclick="pullUpdates()"]').disabled = false;
+                document.querySelector('[onclick="pullUpdates()"]').textContent = 'Pull Updates';
+            })
+            .catch(err => {
+                showMessage('error', `Error: ${err.message}`);
+                document.querySelector('[onclick="pullUpdates()"]').disabled = false;
+                document.querySelector('[onclick="pullUpdates()"]').textContent = 'Pull Updates';
+            });
+        }
+
         function showMessage(type, text) {
             const msg = document.createElement('div');
             msg.className = `message ${type}`;
@@ -499,8 +690,11 @@
             setTimeout(() => msg.remove(), 5000);
         }
 
-        // Load initial images
-        loadImages();
+        // Load initial content and check for updates
+        window.addEventListener('load', () => {
+            loadImages();
+            checkUpdates();
+        });
     </script>
 </body>
 </html>
