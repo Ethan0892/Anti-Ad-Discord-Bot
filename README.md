@@ -303,7 +303,14 @@ WEB_API_TOKEN=change-this-to-a-secure-token-in-production
 4. Right-click channel → Copy Channel ID → `APPEAL_CHANNEL_ID` and `LOG_CHANNEL_ID`
 
 ---
+After **First** Login
+Once logged in as owner, you can:
 
+Go to the Users page
+Add team members as developers or users
+Each person gets their own username/password
+**Note:** There is NO pre-configured default password. You must run setup_web.py --owner first to create the owner account with your chosen password
+---
 ## Usage
 
 ### Discord Bot
