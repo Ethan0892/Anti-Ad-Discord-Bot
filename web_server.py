@@ -1,10 +1,12 @@
 """
 Web interface for Anti-Ad Bot
 Modern dark blue UI for uploading training images and managing configuration
+Includes user authentication and management for owner/devs
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import os
 import json
@@ -12,6 +14,7 @@ import logging
 from functools import wraps
 from datetime import datetime
 import shutil
+import secrets
 
 # Setup logging
 logging.basicConfig(
@@ -26,12 +29,15 @@ app = Flask(__name__)
 ROOT_PATH = Path(__file__).parent
 TRAINING_DATA_PATH = ROOT_PATH / 'Training-Data'
 CONFIG_PATH = ROOT_PATH / 'config'
+DATA_PATH = ROOT_PATH / 'data.json'
+USERS_FILE = ROOT_PATH / 'users.json'
 UPLOAD_FOLDER = TRAINING_DATA_PATH
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+app.config['SECRET_KEY'] = os.getenv('WEB_SECRET_KEY', secrets.token_hex(32))
 
 # Security token for API access
 API_TOKEN = os.getenv('WEB_API_TOKEN', 'your-secure-token-here')
@@ -46,21 +52,154 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def login_required(f):
+    """Decorator to require user login"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    """Decorator to require admin privileges (owner or dev)"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        
+        user = get_user(session['username'])
+        if not user or user.get('role') not in ['owner', 'dev']:
+            return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        return f(*args, **kwargs)
+    return decorated
+
+def load_users():
+    """Load users from JSON file"""
+    if USERS_FILE.exists():
+        try:
+            with open(USERS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_users(users):
+    """Save users to JSON file"""
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=2)
+
+def get_user(username):
+    """Get user by username"""
+    users = load_users()
+    return users.get(username)
+
+def user_exists(username):
+    """Check if user exists"""
+    users = load_users()
+    return username in users
+
+def create_user(username, password, role='user'):
+    """Create a new user"""
+    users = load_users()
+    if username in users:
+        return False, 'User already exists'
+    
+    users[username] = {
+        'password_hash': generate_password_hash(password),
+        'role': role,  # 'owner', 'dev', or 'user'
+        'created': datetime.now().isoformat()
+    }
+    save_users(users)
+    logger.info(f"Created user: {username} (role: {role})")
+    return True, 'User created successfully'
+
+def verify_password(username, password):
+    """Verify user password"""
+    user = get_user(username)
+    if not user:
+        return False
+    return check_password_hash(user['password_hash'], password)
+
 def allowed_file(filename):
     """Check if file has allowed extension"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/')
-def index():
-    """Main page"""
+# ============ Authentication Routes ============
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            return render_template('login.html', error='Username and password required'), 400
+        
+        if not verify_password(username, password):
+            return render_template('login.html', error='Invalid credentials'), 401
+        
+        session['username'] = username
+        user = get_user(username)
+        session['role'] = user.get('role', 'user')
+        logger.info(f"User logged in: {username}")
+        
+        return redirect(url_for('dashboard'))
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout"""
+    username = session.get('username')
+    session.clear()
+    if username:
+        logger.info(f"User logged out: {username}")
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Main dashboard"""
+    user = get_user(session['username'])
     training_images = sorted([
         f.name for f in TRAINING_DATA_PATH.iterdir() 
         if f.is_file() and allowed_file(f.name)
-    ])
+    ]) if TRAINING_DATA_PATH.exists() else []
     
-    return render_template('index.html', 
+    return render_template('dashboard.html', 
+                         username=session['username'],
+                         role=session.get('role'),
                          training_images=training_images,
                          image_count=len(training_images))
+
+@app.route('/users')
+@admin_required
+def users_page():
+    """User management page (admin only)"""
+    users = load_users()
+    user_list = [
+        {
+            'username': u,
+            'role': data.get('role', 'user'),
+            'created': data.get('created')
+        }
+        for u, data in users.items()
+    ]
+    
+    return render_template('users.html',
+                         username=session['username'],
+                         role=session.get('role'),
+                         users=user_list)
+
+@app.route('/')
+def index():
+    """Redirect to dashboard or login"""
+    if 'username' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
 @app.route('/api/training-images', methods=['GET'])
 def get_training_images():
@@ -207,6 +346,126 @@ def get_status():
         'training_images': training_count,
         'timestamp': datetime.now().isoformat()
     }), 200
+
+# ============ User Management API Routes ============
+
+@app.route('/api/users', methods=['GET'])
+@admin_required
+def api_get_users():
+    """Get all users (admin only)"""
+    users = load_users()
+    user_list = [
+        {
+            'username': u,
+            'role': data.get('role', 'user'),
+            'created': data.get('created')
+        }
+        for u, data in users.items()
+    ]
+    
+    return jsonify({'users': user_list}), 200
+
+@app.route('/api/users', methods=['POST'])
+@admin_required
+def api_create_user():
+    """Create new user (admin only)"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+    
+    if role not in ['owner', 'dev', 'user']:
+        return jsonify({'error': 'Invalid role'}), 400
+    
+    success, message = create_user(username, password, role)
+    if not success:
+        return jsonify({'error': message}), 400
+    
+    return jsonify({'success': True, 'message': message}), 201
+
+@app.route('/api/users/<username>', methods=['PUT'])
+@admin_required
+def api_update_user(username):
+    """Update user (admin only)"""
+    data = request.get_json()
+    users = load_users()
+    
+    if username not in users:
+        return jsonify({'error': 'User not found'}), 404
+    
+    # Prevent deleting owner
+    if username == 'owner' and data.get('role') and data.get('role') != 'owner':
+        return jsonify({'error': 'Cannot change owner role'}), 403
+    
+    if 'role' in data:
+        if data['role'] not in ['owner', 'dev', 'user']:
+            return jsonify({'error': 'Invalid role'}), 400
+        users[username]['role'] = data['role']
+    
+    if 'password' in data and data['password']:
+        users[username]['password_hash'] = generate_password_hash(data['password'])
+    
+    save_users(users)
+    logger.info(f"Updated user: {username}")
+    
+    return jsonify({'success': True, 'message': f'User {username} updated'}), 200
+
+@app.route('/api/users/<username>', methods=['DELETE'])
+@admin_required
+def api_delete_user(username):
+    """Delete user (admin only)"""
+    # Prevent deleting owner
+    if username == 'owner':
+        return jsonify({'error': 'Cannot delete owner account'}), 403
+    
+    users = load_users()
+    if username not in users:
+        return jsonify({'error': 'User not found'}), 404
+    
+    del users[username]
+    save_users(users)
+    logger.info(f"Deleted user: {username}")
+    
+    return jsonify({'success': True, 'message': f'User {username} deleted'}), 200
+
+@app.route('/api/profile', methods=['GET'])
+@login_required
+def api_get_profile():
+    """Get current user profile"""
+    username = session.get('username')
+    user = get_user(username)
+    
+    return jsonify({
+        'username': username,
+        'role': user.get('role', 'user'),
+        'created': user.get('created')
+    }), 200
+
+@app.route('/api/profile/password', methods=['PUT'])
+@login_required
+def api_change_password():
+    """Change current user password"""
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    username = session.get('username')
+    
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current and new password required'}), 400
+    
+    if not verify_password(username, current_password):
+        return jsonify({'error': 'Invalid current password'}), 401
+    
+    users = load_users()
+    users[username]['password_hash'] = generate_password_hash(new_password)
+    save_users(users)
+    
+    logger.info(f"Password changed for user: {username}")
+    
+    return jsonify({'success': True, 'message': 'Password changed successfully'}), 200
 
 @app.errorhandler(413)
 def request_entity_too_large(error):

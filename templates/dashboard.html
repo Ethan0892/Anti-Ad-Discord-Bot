@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Anti-Ad Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        nav {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid rgba(30, 58, 138, 0.5);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .badge {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.dev {
+            background: #8b5cf6;
+        }
+
+        .badge.owner {
+            background: #f59e0b;
+        }
+
+        nav a {
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #93c5fd;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #94a3b8;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(30, 58, 138, 0.5);
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #60a5fa;
+            border-bottom-color: #60a5fa;
+        }
+
+        .tab:hover {
+            color: #93c5fd;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(30, 58, 138, 0.5);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(96, 165, 250, 0.3);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.05);
+        }
+
+        .upload-area.drag-over {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .upload-area p {
+            color: #94a3b8;
+            margin: 10px 0;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            background: rgba(30, 58, 138, 0.3);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .image-item-name {
+            color: #cbd5e1;
+            font-size: 12px;
+            word-break: break-all;
+            margin-bottom: 8px;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .status-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(30, 58, 138, 0.3);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .loading {
+            color: #94a3b8;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #6ee7b7;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .nav-right {
+                gap: 10px;
+            }
+
+            .user-info {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">Anti-Ad Bot Control Panel</div>
+        <div class="nav-right">
+            <div class="user-info">
+                <span>{{ username }}</span>
+                <span class="badge {% if role == 'owner' %}owner{% elif role == 'dev' %}dev{% endif %}">{{ role }}</span>
+            </div>
+            {% if role in ['owner', 'dev'] %}
+            <a href="{{ url_for('users_page') }}">Users</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, {{ username }}!</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('training')">Training Images</button>
+            <button class="tab" onclick="switchTab('config')">Configuration</button>
+            <button class="tab" onclick="switchTab('status')">Status</button>
+        </div>
+
+        <!-- Training Images Tab -->
+        <div id="training" class="tab-content active">
+            <div class="card">
+                <h2 style="color: #60a5fa; margin-bottom: 15px;">Upload Training Images</h2>
+                <div class="upload-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <p>Drag and drop images here</p>
+                    <p style="color: #64748b; font-size: 12px;">or click to select</p>
+                    <input type="file" id="fileInput" multiple accept="image/*" onchange="handleFileSelect(event)">
+                    <button type="button" onclick="document.getElementById('fileInput').click()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Select Files</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="color: #60a5fa; margin-bottom: 15px;">Training Images ({{ image_count }})</h2>
+                <div id="imageGrid" class="image-grid">
+                    <div class="loading">Loading images...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Tab -->
+        <div id="config" class="tab-content">
+            <div class="card">
+                <h2 style="color: #60a5fa; margin-bottom: 15px;">Bot Configuration</h2>
+                <p style="color: #94a3b8; margin-bottom: 20px;">Edit bot settings here</p>
+                <div id="configForm" class="loading">Loading configuration...</div>
+            </div>
+        </div>
+
+        <!-- Status Tab -->
+        <div id="status" class="tab-content">
+            <div class="card">
+                <h2 style="color: #60a5fa; margin-bottom: 15px;">System Status</h2>
+                <div id="statusContent" class="loading">Loading status...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_TOKEN = '{{ session.get("_flashes", {}) }}'; // Would need proper token handling
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Load content if needed
+            if (tabName === 'training') loadImages();
+            else if (tabName === 'config') loadConfig();
+            else if (tabName === 'status') loadStatus();
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            uploadFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            uploadFiles(files);
+        }
+
+        function uploadFiles(files) {
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/api/training-images/upload', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': 'your-token' // In production, set this properly
+                    },
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('success', `Uploaded ${file.name}`);
+                        loadImages();
+                    } else {
+                        showMessage('error', `Failed to upload ${file.name}: ${data.error}`);
+                    }
+                })
+                .catch(err => showMessage('error', `Error: ${err.message}`));
+            }
+        }
+
+        function loadImages() {
+            fetch('/api/training-images')
+                .then(r => r.json())
+                .then(data => {
+                    const grid = document.getElementById('imageGrid');
+                    grid.innerHTML = '';
+
+                    if (!data.images || data.images.length === 0) {
+                        grid.innerHTML = '<p style="color: #94a3b8; grid-column: 1/-1;">No training images yet</p>';
+                        return;
+                    }
+
+                    data.images.forEach(img => {
+                        const item = document.createElement('div');
+                        item.className = 'image-item';
+                        item.innerHTML = `
+                            <img src="/Training-Data/${img.name}" alt="${img.name}">
+                            <div class="image-item-name">${img.name}</div>
+                            <button class="btn-delete" onclick="deleteImage('${img.name}')">Delete</button>
+                        `;
+                        grid.appendChild(item);
+                    });
+                })
+                .catch(err => console.error('Error loading images:', err));
+        }
+
+        function deleteImage(filename) {
+            if (!confirm(`Delete ${filename}?`)) return;
+
+            fetch(`/api/training-images/${filename}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-API-Token': 'your-token'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', 'Image deleted');
+                    loadImages();
+                } else {
+                    showMessage('error', data.error);
+                }
+            });
+        }
+
+        function loadConfig() {
+            const form = document.getElementById('configForm');
+            form.innerHTML = '<p style="color: #94a3b8;">Configuration loading...</p>';
+        }
+
+        function loadStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    const status = document.getElementById('statusContent');
+                    status.innerHTML = `
+                        <div class="status-section">
+                            <div class="stat-box">
+                                <div class="stat-value" style="color: #10b981;">${data.status === 'online' ? '✓' : '✗'}</div>
+                                <div class="stat-label">Bot Status</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${data.training_images}</div>
+                                <div class="stat-label">Training Images</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                                <div class="stat-label">Last Update</div>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+
+        function showMessage(type, text) {
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            document.querySelector('.container').insertBefore(msg, document.querySelector('.header').nextSibling);
+            setTimeout(() => msg.remove(), 5000);
+        }
+
+        // Load initial images
+        loadImages();
+    </script>
+</body>
+</html>
