@@ -10,7 +10,9 @@ from werkzeug.security import generate_password_hash
 from datetime import datetime
 import sys
 
-USERS_FILE = Path(__file__).parent / 'users.json'
+WEB_DATA_PATH = Path(__file__).parent / 'web-data'
+WEB_DATA_PATH.mkdir(parents=True, exist_ok=True)
+USERS_FILE = WEB_DATA_PATH / 'users.json'
 
 def create_owner_account(password=None):
     """Create initial owner account"""

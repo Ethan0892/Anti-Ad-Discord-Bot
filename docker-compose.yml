@@ -43,7 +43,7 @@ services:
       - ./Training-Data:/app/Training-Data
       - ./data.json:/app/data.json
       - ./config:/app/config
-      - ./users.json:/app/users.json
+      - web-data:/app/web-data
     restart: unless-stopped
     networks:
       - bot-network
@@ -63,3 +63,4 @@ networks:
 volumes:
   training-data:
   bot-data:
+  web-data:

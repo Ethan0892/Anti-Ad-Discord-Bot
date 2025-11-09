@@ -31,10 +31,14 @@ ROOT_PATH = Path(__file__).parent
 TRAINING_DATA_PATH = ROOT_PATH / 'Training-Data'
 CONFIG_PATH = ROOT_PATH / 'config'
 DATA_PATH = ROOT_PATH / 'data.json'
-USERS_FILE = ROOT_PATH / 'users.json'
+WEB_DATA_PATH = ROOT_PATH / 'web-data'
+USERS_FILE = WEB_DATA_PATH / 'users.json'
 UPLOAD_FOLDER = TRAINING_DATA_PATH
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Ensure web-data directory exists
+WEB_DATA_PATH.mkdir(parents=True, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
