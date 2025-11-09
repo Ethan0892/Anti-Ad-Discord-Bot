@@ -331,7 +331,10 @@
             </div>
 
             <div class="card">
-                <h2 style="color: #60a5fa; margin-bottom: 15px;">Training Images ({{ image_count }})</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="color: #60a5fa; margin: 0;">Training Images ({{ image_count }})</h2>
+                    <button type="button" onclick="syncTrainingDataFromGitHub()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">🔄 Sync from GitHub</button>
+                </div>
                 <div id="imageGrid" class="image-grid">
                     <div class="loading">Loading images...</div>
                 </div>
@@ -436,9 +439,6 @@
 
                 fetch('/api/training-images/upload', {
                     method: 'POST',
-                    headers: {
-                        'X-API-Token': 'your-token' // In production, set this properly
-                    },
                     body: formData
                 })
                 .then(r => r.json())
@@ -484,10 +484,7 @@
             if (!confirm(`Delete ${filename}?`)) return;
 
             fetch(`/api/training-images/${filename}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-API-Token': 'your-token'
-                }
+                method: 'DELETE'
             })
             .then(r => r.json())
             .then(data => {
@@ -497,6 +494,32 @@
                 } else {
                     showMessage('error', data.error);
                 }
+            });
+        }
+
+        function syncTrainingDataFromGitHub() {
+            const syncBtn = event.target;
+            syncBtn.disabled = true;
+            syncBtn.textContent = '⏳ Syncing...';
+            
+            fetch('/api/training-images/sync-github', {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('success', data.message);
+                    loadImages();
+                } else {
+                    showMessage('error', data.error);
+                }
+            })
+            .catch(err => {
+                showMessage('error', `Sync error: ${err.message}`);
+            })
+            .finally(() => {
+                syncBtn.disabled = false;
+                syncBtn.textContent = '🔄 Sync from GitHub';
             });
         }
 

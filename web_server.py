@@ -15,6 +15,7 @@ from functools import wraps
 from datetime import datetime
 import shutil
 import secrets
+import subprocess
 
 # Setup logging
 logging.basicConfig(
@@ -71,6 +72,20 @@ def admin_required(f):
         user = get_user(session['username'])
         if not user or user.get('role') not in ['owner', 'dev']:
             return jsonify({'error': 'Unauthorized - Admin access required'}), 403
+        
+        return f(*args, **kwargs)
+    return decorated
+
+def dev_or_owner_required(f):
+    """Decorator to require dev or owner role for training data management"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'username' not in session:
+            return jsonify({'error': 'Unauthorized - Login required'}), 401
+        
+        user = get_user(session['username'])
+        if not user or user.get('role') not in ['owner', 'dev']:
+            return jsonify({'error': 'Unauthorized - Dev or Owner access required'}), 403
         
         return f(*args, **kwargs)
     return decorated
@@ -238,9 +253,9 @@ def get_training_images():
     return jsonify({'images': images}), 200
 
 @app.route('/api/training-images/upload', methods=['POST'])
-@token_required
+@dev_or_owner_required
 def upload_image():
-    """Upload new training image"""
+    """Upload new training image - accessible to dev and owner roles"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     
@@ -256,7 +271,7 @@ def upload_image():
         filepath = TRAINING_DATA_PATH / filename
         file.save(str(filepath))
         
-        logger.info(f"Uploaded training image: {filename}")
+        logger.info(f"Uploaded training image: {filename} by user {session.get('username')}")
         
         return jsonify({
             'success': True,
@@ -269,9 +284,9 @@ def upload_image():
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 @app.route('/api/training-images/<filename>', methods=['DELETE'])
-@token_required
+@dev_or_owner_required
 def delete_image(filename):
-    """Delete training image"""
+    """Delete training image - accessible to dev and owner roles"""
     filename = secure_filename(filename)
     filepath = TRAINING_DATA_PATH / filename
     
@@ -280,7 +295,7 @@ def delete_image(filename):
     
     try:
         filepath.unlink()
-        logger.info(f"Deleted training image: {filename}")
+        logger.info(f"Deleted training image: {filename} by user {session.get('username')}")
         
         return jsonify({
             'success': True,
@@ -572,6 +587,43 @@ def update_config():
 def request_entity_too_large(error):
     """Handle file too large error"""
     return jsonify({'error': f'File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024:.0f}MB'}), 413
+
+@app.route('/api/training-images/sync-github', methods=['POST'])
+@dev_or_owner_required
+def sync_training_data():
+    """Sync training data from GitHub repository"""
+    try:
+        logger.info("Starting GitHub sync for training data...")
+        
+        # Run git pull to update repository
+        result = subprocess.run(
+            ['git', 'pull', 'origin', 'main'],
+            cwd=Path(__file__).parent,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            logger.warning(f"Git pull had warnings: {result.stderr}")
+        
+        # Count training images
+        image_count = len(list(TRAINING_DATA_PATH.glob('*')))
+        
+        logger.info(f"GitHub sync complete. Training images: {image_count}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Synced training data from GitHub. Found {image_count} images.',
+            'image_count': image_count
+        }), 200
+    
+    except subprocess.TimeoutExpired:
+        logger.error("Git pull timeout")
+        return jsonify({'error': 'Sync timeout - took too long'}), 504
+    except Exception as e:
+        logger.error(f"Error syncing from GitHub: {e}")
+        return jsonify({'error': f'Sync failed: {str(e)}'}), 500
 
 @app.errorhandler(404)
 def not_found(error):
