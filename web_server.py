@@ -600,43 +600,20 @@ def sync_training_data():
         logger.info("Starting GitHub sync for training data...")
         app_path = Path(__file__).parent
         
-        # First, fetch from remote to get latest Training-Data
-        fetch_result = subprocess.run(
-            ['git', 'fetch', 'origin', 'main'],
+        # Simple git pull to get latest Training-Data
+        result = subprocess.run(
+            ['git', 'pull', 'origin', 'main'],
             cwd=str(app_path),
             capture_output=True,
             text=True,
             timeout=30
         )
         
-        logger.info(f"Git fetch result: {fetch_result.returncode}")
-        if fetch_result.stderr:
-            logger.info(f"Git fetch stderr: {fetch_result.stderr}")
-        
-        # Clean untracked files (except our config) to allow merge
-        # This removes files that were COPY'd but not in the current origin/main
-        clean_result = subprocess.run(
-            ['git', 'clean', '-fd', 'Training-Data/', '--', '*.py', '*.html', 'requirements.txt'],
-            cwd=str(app_path),
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        logger.info(f"Git clean result: {clean_result.returncode}")
-        
-        # Checkout origin/main for Training-Data folder (force overwrite local)
-        checkout_result = subprocess.run(
-            ['git', 'checkout', 'origin/main', '--', 'Training-Data/'],
-            cwd=str(app_path),
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        logger.info(f"Git checkout result: {checkout_result.returncode}")
-        if checkout_result.stderr:
-            logger.info(f"Git checkout stderr: {checkout_result.stderr}")
+        logger.info(f"Git pull result: {result.returncode}")
+        if result.stdout:
+            logger.info(f"Git pull stdout: {result.stdout}")
+        if result.stderr:
+            logger.info(f"Git pull stderr: {result.stderr}")
         
         # Count training images
         image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])

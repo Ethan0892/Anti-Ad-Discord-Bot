@@ -34,7 +34,13 @@ RUN git init && \
     git remote add origin https://github.com/Ethan0892/Anti-Ad-Discord-Bot.git && \
     git config --global --add safe.directory /app && \
     git config --global user.email "bot@anti-ad.local" && \
-    git config --global user.name "Anti-Ad Bot"
+    git config --global user.name "Anti-Ad Bot" && \
+    echo "Training-Data/" > .gitignore && \
+    echo "*.log" >> .gitignore && \
+    echo "data.json" >> .gitignore && \
+    echo ".env" >> .gitignore && \
+    git add .gitignore && \
+    git commit -m "Initial commit with gitignore"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
