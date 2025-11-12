@@ -6,6 +6,20 @@ data.json
 
 # Logs
 *.log
+logs/
+bot.log
+
+# Test and coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pylint.d/
+
+# Python tools
+.python-version
 
 # Python
 __pycache__/

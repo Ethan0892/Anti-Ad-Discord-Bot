@@ -1608,7 +1608,11 @@
 
         async function fetchDetectionStats() {
             try {
-                const resp = await fetch(`${API_BASE}/detections/stats?days=7`);
+                const resp = await fetch(`${API_BASE}/detections/stats?days=7`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
                 if (!resp.ok) return;
                 const stats = await resp.json();
                 $('statDetectionsToday').textContent = stats.detections_today ?? 0;
@@ -1821,7 +1825,11 @@
             select.innerHTML = '<option value="">Loading...</option>';
 
             try {
-                const response = await fetch(`${API_BASE}/server-settings`);
+                const response = await fetch(`${API_BASE}/server-settings`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
                 if (response.status === 403) {
                     select.innerHTML = '<option value="">Unauthorized</option>';
                     select.disabled = true;
@@ -1867,7 +1875,11 @@
             if (!guildId) return;
             updateServerBadge('Loading...', 'badge');
             try {
-                const response = await fetch(`${API_BASE}/server-settings/${guildId}`);
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
                 if (!response.ok) throw new Error('Unable to load settings');
                 const data = await response.json();
                 state.serverSettings = data;
@@ -1935,7 +1947,6 @@
                         },
                         scales: {
                             y: {
-                                beginAtZero: true,
                                 ticks: {
                                     precision: 0,
                                     color: '#cbd5f5'
@@ -2218,7 +2229,11 @@
 
             viewer.textContent = 'Fetching recent logs...';
             try {
-                const response = await fetch(`${API_BASE}/logs/recent?limit=250`);
+                const response = await fetch(`${API_BASE}/logs/recent?limit=250`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
                 if (response.status === 403) {
                     viewer.textContent = 'You do not have permission to view logs.';
                     return;
