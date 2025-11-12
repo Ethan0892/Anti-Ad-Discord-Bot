@@ -600,13 +600,6 @@ def sync_training_data():
         logger.info("Starting GitHub sync for training data...")
         app_path = Path(__file__).parent
         
-        # Configure git to treat /app as safe directory (important for Docker)
-        subprocess.run(
-            ['git', 'config', '--global', '--add', 'safe.directory', str(app_path)],
-            capture_output=True,
-            timeout=10
-        )
-        
         # Run git pull to update repository
         result = subprocess.run(
             ['git', 'pull', 'origin', 'main'],
@@ -616,12 +609,13 @@ def sync_training_data():
             timeout=30
         )
         
-        if result.returncode != 0:
-            error_msg = result.stderr if result.stderr else result.stdout
-            logger.warning(f"Git pull stderr: {error_msg}")
-            # Still try to continue even if there are warnings
-        
         logger.info(f"Git pull stdout: {result.stdout}")
+        if result.stderr:
+            logger.warning(f"Git pull stderr: {result.stderr}")
+        
+        if result.returncode != 0:
+            logger.error(f"Git pull failed with code {result.returncode}")
+            return jsonify({'error': f'Git sync failed: {result.stderr}'}), 500
         
         # Count training images
         image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])

@@ -18,6 +18,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy git repository (needed for sync functionality)
+COPY .git .git
+COPY .gitignore .gitignore
+
 # Copy project structure
 COPY config/ config/
 COPY src/ src/
@@ -28,6 +32,11 @@ COPY setup_web.py .
 
 # Create directories for runtime data
 RUN mkdir -p logs
+
+# Configure git for the container
+RUN git config --global --add safe.directory /app && \
+    git config --global user.email "bot@anti-ad.local" && \
+    git config --global user.name "Anti-Ad Bot"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
