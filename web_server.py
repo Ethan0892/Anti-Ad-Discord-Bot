@@ -328,9 +328,9 @@ def get_status():
 # ============ User Management API Routes ============
 
 @app.route('/api/users', methods=['GET'])
-@admin_required
+@dev_or_owner_required
 def api_get_users():
-    """Get all users (admin only)"""
+    """Get all users (dev and owner)"""
     users = load_users()
     user_list = [
         {
@@ -344,9 +344,9 @@ def api_get_users():
     return jsonify({'users': user_list}), 200
 
 @app.route('/api/users', methods=['POST'])
-@admin_required
+@dev_or_owner_required
 def api_create_user():
-    """Create new user (admin only)"""
+    """Create new user (dev and owner)"""
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -365,9 +365,9 @@ def api_create_user():
     return jsonify({'success': True, 'message': message}), 201
 
 @app.route('/api/users/<username>', methods=['PUT'])
-@admin_required
+@dev_or_owner_required
 def api_update_user(username):
-    """Update user (admin only)"""
+    """Update user (dev and owner)"""
     data = request.get_json()
     users = load_users()
     
@@ -392,9 +392,9 @@ def api_update_user(username):
     return jsonify({'success': True, 'message': f'User {username} updated'}), 200
 
 @app.route('/api/users/<username>', methods=['DELETE'])
-@admin_required
+@dev_or_owner_required
 def api_delete_user(username):
-    """Delete user (admin only)"""
+    """Delete user (dev and owner)"""
     # Prevent deleting owner
     if username == 'owner':
         return jsonify({'error': 'Cannot delete owner account'}), 403
@@ -446,7 +446,7 @@ def api_change_password():
     return jsonify({'success': True, 'message': 'Password changed successfully'}), 200
 
 @app.route('/api/updates/check', methods=['GET'])
-@login_required
+@dev_or_owner_required
 def check_updates():
     """Check for updates from GitHub"""
     try:
@@ -493,7 +493,7 @@ def check_updates():
         return jsonify({'update_available': False, 'error': str(e)}), 200
 
 @app.route('/api/updates/pull', methods=['POST'])
-@admin_required
+@dev_or_owner_required
 def pull_updates():
     """Pull latest updates from GitHub"""
     try:
@@ -549,9 +549,9 @@ def get_config():
         return jsonify({'error': f'Failed to read config: {str(e)}'}), 500
 
 @app.route('/api/config', methods=['PUT'])
-@admin_required
+@dev_or_owner_required
 def update_config():
-    """Update configuration (admin only)"""
+    """Update configuration (dev and owner)"""
     try:
         data = request.get_json()
         env_file = CONFIG_PATH / '.env'
@@ -637,11 +637,8 @@ def sync_training_data():
 @app.route('/api/restart', methods=['POST'])
 @dev_or_owner_required
 def restart_services():
-    """Restart the bot and web server (owner only)"""
-    if session.get('role') != 'owner':
-        return jsonify({'error': 'Only the owner can restart services'}), 403
-    
-    logger.warning(f"Restart requested by {session.get('username')}")
+    """Restart the bot and web server (dev and owner)"""
+    logger.warning(f"Restart requested by {session.get('username')} (role: {session.get('role')})")
     
     try:
         message = 'Restart command sent. Service will restart shortly.'

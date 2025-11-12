@@ -11,8 +11,8 @@ The System Management panel provides administrators with comprehensive control o
 ### Access Requirements
 
 - **Owner Role** - Full access to all system management features
-- **Dev Role** - Can check updates and sync training data (restart restricted)
-- **Admin/User Roles** - No access to system management
+- **Dev Role** - Full access to all system management features
+- **User Role** - No access to system management
 
 ---
 
@@ -321,8 +321,8 @@ Each operation shows real-time output in collapsible sections:
 
 ## Security Notes
 
-- Only owner can restart services
-- Only owner/dev can pull updates
+- Owner and dev roles can restart services
+- Owner and dev roles can pull updates
 - All operations logged with username/timestamp
 - API token required for all operations
 - Changes require re-authentication
