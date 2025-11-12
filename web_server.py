@@ -978,6 +978,53 @@ def api_guild_detection_stats(guild_id):
         logger.error(f"Error building guild detection stats for {guild_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/bot/presence', methods=['GET'])
+@login_required
+def api_bot_presence_get():
+    """Return current bot presence configuration."""
+    try:
+        config_file = CONFIG_PATH / 'bot_presence.json'
+        if config_file.exists():
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+        else:
+            config = {
+                'status_text': 'Scanning for ads...',
+                'activity_type': 'playing',
+                'presence_mode': 'online'
+            }
+        return jsonify(config), 200
+    except Exception as e:
+        logger.error(f"Error loading bot presence config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/bot/presence', methods=['PUT'])
+@login_required
+def api_bot_presence_put():
+    """Update bot presence configuration."""
+    user_role = session.get('role')
+    if user_role not in ['owner', 'dev']:
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    try:
+        data = request.get_json()
+        config = {
+            'status_text': data.get('status_text', 'Scanning for ads...'),
+            'activity_type': data.get('activity_type', 'playing'),
+            'presence_mode': data.get('presence_mode', 'online')
+        }
+        
+        config_file = CONFIG_PATH / 'bot_presence.json'
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2)
+        
+        logger.info(f"Updated bot presence config: {config}")
+        return jsonify({'status': 'updated', 'config': config}), 200
+    except Exception as e:
+        logger.error(f"Error updating bot presence config: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""

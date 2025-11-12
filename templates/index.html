@@ -410,13 +410,14 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px;
-            min-height: 160px;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .metric-card label {
             display: block;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
             margin-bottom: 8px;
             text-transform: uppercase;
@@ -427,15 +428,18 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .metric-list li {
-            padding: 6px 0;
+            padding: 4px 0;
             border-bottom: 1px solid rgba(100, 116, 139, 0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .metric-list li:last-child {
@@ -450,6 +454,53 @@
             border-radius: 4px;
             min-width: 30px;
             text-align: center;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .status-text {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         .btn-outline:hover {
@@ -1191,6 +1242,40 @@
             </div>
         </section>
 
+        <section class="panel" id="botConfigSection">
+            <div class="panel-header">
+                <h2>Bot Configuration</h2>
+                <div class="panel-actions">
+                    <button class="btn-outline" id="refreshBotConfigBtn" type="button">Refresh</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="botStatusText">Bot Status Text:</label>
+                <input type="text" id="botStatusText" placeholder="e.g., Scanning for ads..." maxlength="128">
+            </div>
+            <div class="form-group">
+                <label for="botActivityType">Activity Type:</label>
+                <select id="botActivityType">
+                    <option value="playing">Playing</option>
+                    <option value="streaming">Streaming</option>
+                    <option value="listening">Listening to</option>
+                    <option value="watching">Watching</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="botPresenceMode">Presence Mode:</label>
+                <select id="botPresenceMode">
+                    <option value="online">Online</option>
+                    <option value="idle">Idle</option>
+                    <option value="dnd">Do Not Disturb</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn-primary" id="saveBotConfigBtn" type="button">Save Configuration</button>
+            </div>
+            <div id="botConfigStatus" class="status-text"></div>
+        </section>
+
         <section class="panel" id="logsSection">
             <div class="panel-header">
                 <h2>Recent Activity</h2>
@@ -1323,6 +1408,7 @@
             await refreshDashboard();
             await populateMetricsGuildSelect();
             await loadMetrics();
+            await loadBotConfig();
             setInterval(checkStatus, 30000);
             setInterval(fetchSystemInfo, 60000);
             setInterval(loadMetrics, 300000);  // Refresh metrics every 5 minutes
@@ -1441,6 +1527,8 @@
             $('refreshLogsBtn')?.addEventListener('click', loadLogs);
             $('refreshMetricsBtn')?.addEventListener('click', loadMetrics);
             $('metricsGuildSelect')?.addEventListener('change', loadMetrics);
+            $('refreshBotConfigBtn')?.addEventListener('click', loadBotConfig);
+            $('saveBotConfigBtn')?.addEventListener('click', saveBotConfig);
 
             $('manualGuildForm')?.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -2393,11 +2481,111 @@
             }
         }
 
+        async function loadBotConfig() {
+            if (!HAS_ADMIN_ACCESS) {
+                $('botConfigSection').innerHTML = '<p class="hint">Admin access required.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/bot/presence`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                if (!response.ok) {
+                    $('botConfigStatus').textContent = 'Failed to load bot config.';
+                    return;
+                }
+
+                const config = await response.json();
+                $('botStatusText').value = config.status_text || '';
+                $('botActivityType').value = config.activity_type || 'playing';
+                $('botPresenceMode').value = config.presence_mode || 'online';
+            } catch (error) {
+                console.error('Bot config load error:', error);
+                $('botConfigStatus').textContent = `Load error: ${error.message}`;
+            }
+        }
+
+        async function saveBotConfig() {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required.', 'warning');
+                return;
+            }
+
+            const btn = $('saveBotConfigBtn');
+            const status = $('botConfigStatus');
+            
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+            }
+
+            try {
+                const payload = {
+                    status_text: $('botStatusText').value.trim(),
+                    activity_type: $('botActivityType').value,
+                    presence_mode: $('botPresenceMode').value
+                };
+
+                const response = await fetch(`${API_BASE}/bot/presence`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-API-Token': API_TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    status.textContent = 'Bot presence updated successfully.';
+                    pushToast('Bot configuration saved.', 'success');
+                } else {
+                    status.textContent = `Error: ${data.error || 'Failed to save'}`;
+                    pushToast(data.error || 'Failed to save bot config.', 'error');
+                }
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+                pushToast(`Save error: ${error.message}`, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Save Configuration';
+                }
+            }
+        }
+
+        async function loadMetrics() {
+            if (!HAS_ADMIN_ACCESS) return;
+
+            const guildId = $('metricsGuildSelect')?.value;
+            try {
+                const endpoint = guildId && guildId !== '' 
+                    ? `${API_BASE}/detections/guild/${guildId}?days=7`
+                    : `${API_BASE}/detections/stats?days=7`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                renderMetrics(data);
+                renderDetectionTimeline(data.by_day || {});
+            } catch (error) {
+                console.error('Metrics load error:', error);
+            }
+        }
+
         function renderMetrics(data) {
-            // Render top offenders
+            // Render top offenders (limit to 5)
             const offendersList = $('topOffendersList');
             if (offendersList) {
-                const offenders = data.top_offenders || [];
+                const offenders = (data.top_offenders || []).slice(0, 5);
                 if (offenders.length) {
                     offendersList.innerHTML = offenders.map(o => `
                         <li>
@@ -2410,10 +2598,10 @@
                 }
             }
 
-            // Render top images
+            // Render top images (limit to 5)
             const imagesList = $('topImagesList');
             if (imagesList) {
-                const images = data.top_images || [];
+                const images = (data.top_images || []).slice(0, 5);
                 if (images.length) {
                     imagesList.innerHTML = images.map(i => `
                         <li>
@@ -2426,11 +2614,11 @@
                 }
             }
 
-            // Render detection methods
+            // Render detection methods (limit to 5)
             const methodsList = $('methodsList');
             if (methodsList) {
                 const methods = data.methods_used || {};
-                const entries = Object.entries(methods);
+                const entries = Object.entries(methods).slice(0, 5);
                 if (entries.length) {
                     methodsList.innerHTML = entries.map(([method, count]) => `
                         <li>
