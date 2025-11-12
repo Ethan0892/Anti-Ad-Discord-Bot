@@ -16,6 +16,7 @@ from datetime import datetime
 import shutil
 import secrets
 import subprocess
+import time
 
 # Setup logging
 logging.basicConfig(
@@ -632,6 +633,39 @@ def sync_training_data():
     except Exception as e:
         logger.error(f"Error syncing from GitHub: {e}", exc_info=True)
         return jsonify({'error': f'Sync failed: {str(e)}'}), 500
+
+@app.route('/api/restart', methods=['POST'])
+@dev_or_owner_required
+def restart_services():
+    """Restart the bot and web server (owner only)"""
+    if session.get('role') != 'owner':
+        return jsonify({'error': 'Only the owner can restart services'}), 403
+    
+    logger.warning(f"Restart requested by {session.get('username')}")
+    
+    try:
+        message = 'Restart command sent. Service will restart shortly.'
+        
+        # Use a background thread to avoid blocking the response
+        import threading
+        def restart_async():
+            time.sleep(2)  # Give client time to receive response
+            import os
+            import signal
+            logger.warning("Restarting application...")
+            os.kill(os.getpid(), signal.SIGTERM)
+        
+        restart_thread = threading.Thread(target=restart_async, daemon=True)
+        restart_thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error restarting services: {e}", exc_info=True)
+        return jsonify({'error': f'Restart failed: {str(e)}'}), 500
 
 @app.errorhandler(404)
 def not_found(error):

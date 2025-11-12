@@ -365,6 +365,49 @@
             padding: 20px;
             border-top: 1px solid var(--border);
         }
+
+        /* Enhanced Button Styles */
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border-color: #fca5a5;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Output/Console Styles */
+        #updateOutput,
+        #restartOutput,
+        #syncOutput {
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #94a3b8;
+        }
+
+        #updateOutput::after,
+        #restartOutput::after,
+        #syncOutput::after {
+            content: '';
+        }
     </style>
 </head>
 <body>
@@ -499,6 +542,70 @@
             </div>
         </div>
 
+        <!-- System Management Panel (Full Width) -->
+        <div class="panel">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <h2 style="margin: 0;">System Management</h2>
+                <div style="display: flex; gap: 10px;">
+                    <div class="status-badge" id="updateStatus" style="background: rgba(59, 130, 246, 0.2); border: 1px solid var(--primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
+                        Checking updates...
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Update Section -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Application Updates</h3>
+                    
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                        Check for the latest version and pull updates from the GitHub repository. Your configuration will be preserved.
+                    </p>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" id="checkUpdatesBtn" style="flex: 1; justify-content: center;">
+                            Check for Updates
+                        </button>
+                        <button class="btn btn-primary" id="pullUpdatesBtn" style="flex: 1; justify-content: center; opacity: 0.5; cursor: not-allowed;" disabled>
+                            Pull Updates
+                        </button>
+                    </div>
+
+                    <div id="updateOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
+                    </div>
+                </div>
+
+                <!-- Restart Section -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Service Management</h3>
+                    
+                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                        Restart the bot and web server to apply configuration changes. Service will be offline for 10-15 seconds.
+                    </p>
+
+                    <button class="btn btn-danger" id="restartBotBtn" style="width: 100%; justify-content: center;">
+                        Restart Bot and Web Server
+                    </button>
+
+                    <div id="restartOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- GitHub Sync Button -->
+            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Training Data Management</h3>
+                <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
+                    Synchronize training images from the GitHub repository. New images will be downloaded and immediately available for detection.
+                </p>
+                <button class="btn btn-primary" id="syncGithubBtn" style="width: 100%; justify-content: center;">
+                    Sync Training Data from GitHub
+                </button>
+                <div id="syncOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="footer">
             <p>Anti-Ad Bot v2.0 | Secure Training Data Manager</p>
@@ -541,6 +648,12 @@
 
         uploadBtn.addEventListener('click', () => fileInput.click());
         saveConfigBtn.addEventListener('click', saveConfig);
+
+        // System Management Event Listeners
+        document.getElementById('checkUpdatesBtn').addEventListener('click', checkForUpdates);
+        document.getElementById('pullUpdatesBtn').addEventListener('click', pullUpdates);
+        document.getElementById('restartBotBtn').addEventListener('click', restartBot);
+        document.getElementById('syncGithubBtn').addEventListener('click', syncTrainingDataFromGitHub);
 
         // File upload handler
         async function handleFiles(files) {
@@ -725,6 +838,183 @@
                 }
             } catch {
                 statusValue.textContent = 'Offline';
+            }
+        }
+
+        // System Management Functions
+
+        // Check for Updates
+        async function checkForUpdates() {
+            const btn = document.getElementById('checkUpdatesBtn');
+            const output = document.getElementById('updateOutput');
+            const pullBtn = document.getElementById('pullUpdatesBtn');
+            const status = document.getElementById('updateStatus');
+
+            btn.disabled = true;
+            btn.innerHTML = 'Checking...';
+            output.style.display = 'block';
+            output.innerHTML = 'Checking for updates...';
+
+            try {
+                const response = await fetch(`${API_BASE}/updates/check`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    output.innerHTML = data.message || 'No updates available.';
+                    status.textContent = data.status === 'up_to_date' ? 'Up to Date' : 'Updates Available';
+                    status.style.background = data.status === 'up_to_date' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(252, 191, 73, 0.2)';
+                    status.style.borderColor = data.status === 'up_to_date' ? 'var(--accent)' : '#fbbf24';
+                    
+                    if (data.status !== 'up_to_date') {
+                        pullBtn.disabled = false;
+                        pullBtn.style.opacity = '1';
+                        pullBtn.style.cursor = 'pointer';
+                    }
+                } else {
+                    output.innerHTML = 'Error checking updates: ' + (data.error || 'Unknown error');
+                    status.textContent = 'Error';
+                    status.style.background = 'rgba(239, 68, 68, 0.2)';
+                    status.style.borderColor = 'var(--danger)';
+                }
+            } catch (error) {
+                output.innerHTML = 'Connection error: ' + error.message;
+                status.textContent = 'Error';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Check for Updates';
+            }
+        }
+
+        // Pull Updates
+        async function pullUpdates() {
+            const btn = document.getElementById('pullUpdatesBtn');
+            const output = document.getElementById('updateOutput');
+            const status = document.getElementById('updateStatus');
+
+            btn.disabled = true;
+            btn.innerHTML = 'Pulling Updates...';
+            output.innerHTML = 'Pulling latest updates from GitHub...';
+
+            try {
+                const response = await fetch(`${API_BASE}/updates/pull`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    output.innerHTML = data.message || 'Updates pulled successfully!';
+                    status.textContent = 'Updated';
+                    status.style.background = 'rgba(16, 185, 129, 0.2)';
+                    status.style.borderColor = 'var(--accent)';
+                    showAlert('Updates pulled successfully. Please restart the bot to apply changes.', 'success');
+                } else {
+                    output.innerHTML = 'Error: ' + (data.error || 'Failed to pull updates');
+                    showAlert('Error pulling updates', 'error');
+                }
+            } catch (error) {
+                output.innerHTML = 'Connection error: ' + error.message;
+                showAlert('Connection error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Pull Updates';
+            }
+        }
+
+        // Restart Bot
+        async function restartBot() {
+            if (!confirm('This will restart the bot and web server. You will be disconnected for 10-15 seconds. Continue?')) {
+                return;
+            }
+
+            const btn = document.getElementById('restartBotBtn');
+            const output = document.getElementById('restartOutput');
+
+            btn.disabled = true;
+            btn.innerHTML = 'Restarting...';
+            output.style.display = 'block';
+            output.innerHTML = 'Sending restart command...\nService will be offline for 10-15 seconds...';
+
+            try {
+                const response = await fetch(`${API_BASE}/restart`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    output.innerHTML = data.message || 'Restart command sent.\nWaiting for service to come back online...';
+                    showAlert('Restart initiated. Service will be back online in 10-15 seconds.', 'success');
+                    
+                    // Wait and check if service is back
+                    setTimeout(() => {
+                        checkStatus();
+                        btn.disabled = false;
+                        btn.innerHTML = 'Restart Bot and Web Server';
+                    }, 15000);
+                } else {
+                    output.innerHTML = 'Error: ' + (data.error || 'Failed to restart');
+                    showAlert('Error restarting service', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Restart Bot and Web Server';
+                }
+            } catch (error) {
+                output.innerHTML = 'Connection error: ' + error.message + '\nService may be restarting. Please refresh in a moment.';
+                showAlert('Restart may be in progress. Page will auto-refresh.', 'success');
+                
+                // Try to reconnect after delay
+                setTimeout(() => {
+                    location.reload();
+                }, 15000);
+            }
+        }
+
+        // Sync Training Data from GitHub
+        async function syncTrainingDataFromGitHub() {
+            const btn = document.getElementById('syncGithubBtn');
+            const output = document.getElementById('syncOutput');
+
+            btn.disabled = true;
+            btn.innerHTML = 'Syncing...';
+            output.style.display = 'block';
+            output.innerHTML = 'Synchronizing training data from GitHub...\nThis may take a moment...';
+
+            try {
+                const response = await fetch(`${API_BASE}/training-images/sync-github`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    output.innerHTML = data.message || 'Sync completed successfully!\n' + 
+                        'Images synced: ' + (data.image_count || 0);
+                    showAlert('Training data synchronized! ' + (data.image_count || 0) + ' images available.', 'success');
+                    loadImages();
+                } else {
+                    output.innerHTML = 'Error: ' + (data.error || 'Sync failed');
+                    showAlert('Sync failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                output.innerHTML = 'Connection error: ' + error.message;
+                showAlert('Sync error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Sync Training Data from GitHub';
             }
         }
 
