@@ -17,7 +17,7 @@ services:
     volumes:
       - ./Training-Data:/app/Training-Data
       - ./data.json:/app/data.json
-      - ./logs/bot.log:/app/logs/bot.log
+      - ./logs:/app/logs
     restart: unless-stopped
     networks:
       - bot-network
@@ -61,6 +61,4 @@ networks:
     driver: bridge
 
 volumes:
-  training-data:
-  bot-data:
   web-data:
