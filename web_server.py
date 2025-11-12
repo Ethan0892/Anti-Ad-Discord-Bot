@@ -598,21 +598,33 @@ def sync_training_data():
     """Sync training data from GitHub repository"""
     try:
         logger.info("Starting GitHub sync for training data...")
+        app_path = Path(__file__).parent
+        
+        # Configure git to treat /app as safe directory (important for Docker)
+        subprocess.run(
+            ['git', 'config', '--global', '--add', 'safe.directory', str(app_path)],
+            capture_output=True,
+            timeout=10
+        )
         
         # Run git pull to update repository
         result = subprocess.run(
             ['git', 'pull', 'origin', 'main'],
-            cwd=Path(__file__).parent,
+            cwd=str(app_path),
             capture_output=True,
             text=True,
             timeout=30
         )
         
         if result.returncode != 0:
-            logger.warning(f"Git pull had warnings: {result.stderr}")
+            error_msg = result.stderr if result.stderr else result.stdout
+            logger.warning(f"Git pull stderr: {error_msg}")
+            # Still try to continue even if there are warnings
+        
+        logger.info(f"Git pull stdout: {result.stdout}")
         
         # Count training images
-        image_count = len(list(TRAINING_DATA_PATH.glob('*')))
+        image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])
         
         logger.info(f"GitHub sync complete. Training images: {image_count}")
         
@@ -623,10 +635,10 @@ def sync_training_data():
         }), 200
     
     except subprocess.TimeoutExpired:
-        logger.error("Git pull timeout")
-        return jsonify({'error': 'Sync timeout - took too long'}), 504
+        logger.error("Git pull timeout - operation took too long")
+        return jsonify({'error': 'Sync timeout - operation took too long'}), 504
     except Exception as e:
-        logger.error(f"Error syncing from GitHub: {e}")
+        logger.error(f"Error syncing from GitHub: {e}", exc_info=True)
         return jsonify({'error': f'Sync failed: {str(e)}'}), 500
 
 @app.errorhandler(404)
