@@ -9,6 +9,7 @@ import asyncio
 import sys
 from pathlib import Path
 import re
+import json
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -40,6 +41,138 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Initialize components
 detector = ImageDetector(config.TRAINING_DATA_PATH, config.SIMILARITY_THRESHOLD)
 db = Database()
+
+# Presence configuration paths
+CONFIG_DIR = Path(__file__).resolve().parent.parent / 'config'
+BOT_PRESENCE_PATH = CONFIG_DIR / 'bot_presence.json'
+BOT_STATUS_PATH = CONFIG_DIR / 'bot_status.json'
+
+_presence_cache = {
+    'status_text': config.BOT_ACTIVITY_TEXT,
+    'activity_type': config.BOT_ACTIVITY_TYPE,
+    'presence_mode': config.BOT_STATUS
+}
+_presence_mtime = None
+
+
+def load_presence_config() -> dict:
+    """Load presence configuration from file, falling back to defaults."""
+    presence = {
+        'status_text': config.BOT_ACTIVITY_TEXT,
+        'activity_type': config.BOT_ACTIVITY_TYPE,
+        'presence_mode': config.BOT_STATUS
+    }
+
+    if BOT_PRESENCE_PATH.exists():
+        try:
+            with open(BOT_PRESENCE_PATH, 'r', encoding='utf-8') as handle:
+                file_data = json.load(handle)
+            presence.update({
+                'status_text': file_data.get('status_text') or presence['status_text'],
+                'activity_type': (file_data.get('activity_type') or presence['activity_type']).lower(),
+                'presence_mode': (file_data.get('presence_mode') or presence['presence_mode']).lower()
+            })
+        except Exception as exc:
+            logger.error(f'Failed to load bot presence config: {exc}')
+
+    return presence
+
+
+def map_presence_to_discord(presence: dict) -> tuple[discord.Status, discord.Activity]:
+    """Map persistence payload to discord presence objects."""
+    status_map = {
+        'online': discord.Status.online,
+        'idle': discord.Status.idle,
+        'dnd': discord.Status.do_not_disturb,
+        'do_not_disturb': discord.Status.do_not_disturb,
+        'invisible': discord.Status.invisible,
+        'offline': discord.Status.offline
+    }
+
+    activity_map = {
+        'playing': discord.ActivityType.playing,
+        'streaming': discord.ActivityType.streaming,
+        'listening': discord.ActivityType.listening,
+        'watching': discord.ActivityType.watching
+    }
+
+    mode = presence.get('presence_mode', 'online').lower()
+    activity_type = presence.get('activity_type', 'watching').lower()
+    status_text = presence.get('status_text') or 'for spam images'
+
+    status = status_map.get(mode, discord.Status.online)
+    activity_type_obj = activity_map.get(activity_type, discord.ActivityType.watching)
+
+    activity_kwargs = {'type': activity_type_obj, 'name': status_text}
+    if activity_type_obj is discord.ActivityType.streaming:
+        # Discord requires a URL for streaming status; provide placeholder if missing
+        activity_kwargs['url'] = presence.get('stream_url') or 'https://twitch.tv/discord'
+
+    activity = discord.Activity(**activity_kwargs)
+    return status, activity
+
+
+def persist_bot_status(status_value: str, presence: Optional[dict] = None) -> None:
+    """Write heartbeat + presence to disk for the admin portal."""
+    try:
+        payload = {
+            'status': status_value,
+            'last_heartbeat': datetime.utcnow().isoformat(),
+            'guild_count': len(bot.guilds),
+            'presence': presence or _presence_cache
+        }
+        BOT_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(BOT_STATUS_PATH, 'w', encoding='utf-8') as handle:
+            json.dump(payload, handle, indent=2)
+    except Exception as exc:
+        logger.error(f'Failed to persist bot status: {exc}')
+
+
+async def apply_presence(force: bool = False) -> None:
+    """Load presence config and update Discord presence if changed."""
+    global _presence_cache, _presence_mtime
+
+    try:
+        presence = load_presence_config()
+        mtime = BOT_PRESENCE_PATH.stat().st_mtime if BOT_PRESENCE_PATH.exists() else None
+
+        if not force and mtime == _presence_mtime and presence == _presence_cache:
+            return
+
+        status, activity = map_presence_to_discord(presence)
+        await bot.change_presence(status=status, activity=activity)
+
+        _presence_cache = presence
+        _presence_mtime = mtime
+        persist_bot_status('online', presence)
+        logger.info(f"Applied bot presence: mode={presence['presence_mode']} activity={presence['activity_type']} text='{presence['status_text']}'")
+    except Exception as exc:
+        logger.error(f'Failed to apply bot presence: {exc}')
+
+
+@tasks.loop(seconds=45)
+async def heartbeat_task():
+    """Persist heartbeat periodically for portal status page."""
+    try:
+        persist_bot_status('online')
+    except Exception as exc:
+        logger.error(f'Heartbeat persistence failed: {exc}')
+
+
+@tasks.loop(seconds=20)
+async def presence_watcher():
+    """Monitor presence file for changes and update dynamically."""
+    await apply_presence()
+
+
+@heartbeat_task.before_loop
+async def before_heartbeat_task():
+    await bot.wait_until_ready()
+
+
+@presence_watcher.before_loop
+async def before_presence_watcher():
+    await bot.wait_until_ready()
 
 def extract_image_urls(text: str) -> list:
     """
@@ -141,48 +274,26 @@ async def on_ready():
     except Exception as e:
         logger.error(f'Failed to sync commands: {e}')
     
-    # Set bot status - now configurable
-    try:
-        # Map status type
-        status_map = {
-            'online': discord.Status.online,
-            'idle': discord.Status.idle,
-            'do_not_disturb': discord.Status.do_not_disturb,
-            'invisible': discord.Status.invisible
-        }
-        status = status_map.get(config.BOT_STATUS, discord.Status.online)
-        
-        # Map activity type
-        activity_type_map = {
-            'playing': discord.ActivityType.playing,
-            'streaming': discord.ActivityType.streaming,
-            'listening': discord.ActivityType.listening,
-            'watching': discord.ActivityType.watching
-        }
-        activity_type = activity_type_map.get(config.BOT_ACTIVITY_TYPE, discord.ActivityType.watching)
-        
-        # Create activity
-        activity = discord.Activity(
-            type=activity_type,
-            name=config.BOT_ACTIVITY_TEXT
-        )
-        
-        # Set presence
-        await bot.change_presence(status=status, activity=activity)
-        
-        logger.info(f'Bot presence set: {config.BOT_STATUS} - {config.BOT_ACTIVITY_TYPE} {config.BOT_ACTIVITY_TEXT}')
-    except Exception as e:
-        logger.error(f'Error setting bot presence: {e}')
-        # Fallback to default
-        await bot.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.watching,
-                name="for spam images"
-            )
-        )
-    
+    await apply_presence(force=True)
+
     # Start background tasks
-    cleanup_cache.start()
+    if not cleanup_cache.is_running():
+        cleanup_cache.start()
+    if not presence_watcher.is_running():
+        presence_watcher.start()
+    if not heartbeat_task.is_running():
+        heartbeat_task.start()
+
+    persist_bot_status('online')
+
+
+@bot.event
+async def on_disconnect():
+    """Persist offline status when bot disconnects."""
+    try:
+        persist_bot_status('offline')
+    except Exception as exc:
+        logger.error(f'Failed to persist offline status: {exc}')
 
 
 @bot.event

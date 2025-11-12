@@ -316,29 +316,67 @@ def delete_image(filename):
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Get bot status derived from recent log activity and training set size."""
+    """Expose bot heartbeat, presence and training image count for system card."""
     training_count = len([
-        f for f in TRAINING_DATA_PATH.iterdir() 
+        f for f in TRAINING_DATA_PATH.iterdir()
         if f.is_file() and allowed_file(f.name)
     ]) if TRAINING_DATA_PATH.exists() else 0
 
-    status = 'online'
-    log_file = ROOT_PATH / 'bot.log'
-    try:
-        if log_file.exists():
-            mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
-            # Consider offline if no log activity in the last 10 minutes
-            if (datetime.now() - mtime).total_seconds() > 600:
-                status = 'inactive'
-        else:
+    status = 'unknown'
+    last_heartbeat = None
+    heartbeat_age = None
+    presence = None
+    guild_count = 0
+    status_source = 'heartbeat'
+
+    heartbeat_file = CONFIG_PATH / 'bot_status.json'
+    if heartbeat_file.exists():
+        try:
+            with open(heartbeat_file, 'r', encoding='utf-8') as handle:
+                payload = json.load(handle)
+            status = payload.get('status', 'unknown')
+            last_heartbeat = payload.get('last_heartbeat')
+            presence = payload.get('presence')
+            guild_count = payload.get('guild_count', 0)
+
+            if last_heartbeat:
+                try:
+                    heartbeat_dt = datetime.fromisoformat(last_heartbeat)
+                    heartbeat_age = max((datetime.utcnow() - heartbeat_dt).total_seconds(), 0)
+                    # Automatically degrade status if heartbeat is stale
+                    if heartbeat_age > 300:
+                        status = 'offline'
+                    elif heartbeat_age > 120 and status == 'online':
+                        status = 'inactive'
+                except ValueError:
+                    status = status or 'unknown'
+        except Exception as exc:
+            logger.error(f"Error reading bot heartbeat: {exc}")
             status = 'unknown'
-    except Exception:
-        status = 'unknown'
+    else:
+        status_source = 'logfile'
+        log_file = ROOT_PATH / 'bot.log'
+        try:
+            if log_file.exists():
+                mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
+                if (datetime.now() - mtime).total_seconds() > 600:
+                    status = 'inactive'
+                else:
+                    status = 'online'
+            else:
+                status = 'unknown'
+        except Exception:
+            status = 'unknown'
 
     return jsonify({
         'status': status,
         'training_images': training_count,
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.utcnow().isoformat(),
+        'last_heartbeat': last_heartbeat,
+        'heartbeat_seconds': heartbeat_age,
+        'presence': presence,
+        'guild_count': guild_count,
+        'source': status_source
     }), 200
 
 # ============ User Management API Routes ============

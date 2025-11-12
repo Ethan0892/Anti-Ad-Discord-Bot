@@ -1383,7 +1383,7 @@
             }
         }
 
-        function updateStatusCard(statusText, online) {
+        function updateStatusCard(statusText, online, lastHeartbeat = null, presenceText = '') {
             const statusCard = $('statusCard');
             const statusValue = $('statStatus');
             const subtitle = $('statusSubtitle');
@@ -1391,7 +1391,11 @@
             statusCard.classList.toggle('online', !!online);
             statusCard.classList.toggle('offline', !online);
             statusValue.textContent = statusText;
-            subtitle.textContent = `Last checked ${new Date().toLocaleTimeString()}`;
+            if (lastHeartbeat instanceof Date && !Number.isNaN(lastHeartbeat.valueOf())) {
+                subtitle.textContent = `Last heartbeat ${lastHeartbeat.toLocaleTimeString()}`;
+            } else {
+                subtitle.textContent = presenceText ? presenceText : 'No heartbeat recorded yet';
+            }
         }
 
         function updateServerBadge(text, className = 'badge') {
@@ -1836,8 +1840,13 @@
                 const response = await fetch(`${API_BASE}/status`);
                 if (!response.ok) throw new Error('status error');
                 const data = await response.json();
-                const isOnline = (data.status || '').toLowerCase() === 'online';
-                updateStatusCard(isOnline ? 'Online' : (data.status || 'Unknown'), isOnline);
+                const rawStatus = (data.status || 'unknown').toLowerCase();
+                const isOnline = rawStatus === 'online';
+                const presenceText = data.presence?.status_text || '';
+                const statusLabel = `${rawStatus.charAt(0).toUpperCase()}${rawStatus.slice(1)}` +
+                    (presenceText ? ` • ${presenceText}` : '');
+                const heartbeat = data.last_heartbeat ? new Date(data.last_heartbeat) : null;
+                updateStatusCard(statusLabel, isOnline, heartbeat, presenceText);
             } catch (error) {
                 updateStatusCard('Offline', false);
             }
