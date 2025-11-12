@@ -24,19 +24,23 @@ class Database:
         if os.path.exists(self.db_file):
             # Check if it's a file (not a directory)
             if os.path.isdir(self.db_file):
-                logger.warning(f"{self.db_file} is a directory, removing it and starting fresh")
+                logger.warning(f"{self.db_file} is a directory, attempting to clean up and start fresh")
                 try:
                     import shutil
-                    shutil.rmtree(self.db_file)
+                    shutil.rmtree(self.db_file, ignore_errors=True)
+                    logger.info(f"Successfully removed directory {self.db_file}")
                 except Exception as e:
-                    logger.error(f"Error removing directory {self.db_file}: {e}")
-                    return
+                    logger.warning(f"Could not remove directory {self.db_file}: {e}, continuing with fresh data")
+                # Continue with fresh data regardless of removal success
+                return
             elif os.path.isfile(self.db_file):
                 try:
                     with open(self.db_file, 'r', encoding='utf-8') as f:
                         self.data = json.load(f)
                     logger.info(f"Database loaded from {self.db_file}")
                     return
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Database file corrupted: {e}, starting fresh")
                 except Exception as e:
                     logger.error(f"Error loading database: {e}")
         
@@ -45,6 +49,12 @@ class Database:
     def save(self):
         """Save database to file."""
         try:
+            # If data.json exists as a directory, try to clean it up first
+            if os.path.exists(self.db_file) and os.path.isdir(self.db_file):
+                logger.warning(f"Cleaning up directory at {self.db_file} before save")
+                import shutil
+                shutil.rmtree(self.db_file, ignore_errors=True)
+            
             with open(self.db_file, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
             logger.debug("Database saved")
