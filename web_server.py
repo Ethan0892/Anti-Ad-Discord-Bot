@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
+from collections import deque
 import os
 import json
 import logging
@@ -26,6 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger('admin_portal')
 
 app = Flask(__name__)
+APP_START_TIME = time.time()
 
 # Configuration
 ROOT_PATH = Path(__file__).parent
@@ -212,7 +214,8 @@ def dashboard():
                          username=session['username'],
                          role=session.get('role'),
                          training_images=training_images,
-                         image_count=len(training_images))
+                         image_count=len(training_images),
+                         portal_version='2.2.0')
 
 @app.route('/users')
 @admin_required
@@ -634,6 +637,71 @@ def sync_training_data():
         logger.error(f"Error syncing from GitHub: {e}", exc_info=True)
         return jsonify({'error': f'Sync failed: {str(e)}'}), 500
 
+@app.route('/api/system/info', methods=['GET'])
+@login_required
+def get_system_info():
+    """Provide portal overview metrics for dashboard widgets."""
+    try:
+        training_count = len([
+            f for f in TRAINING_DATA_PATH.glob('*') if f.is_file() and allowed_file(f.name)
+        ]) if TRAINING_DATA_PATH.exists() else 0
+
+        from src.database import Database
+        db = Database()
+        servers = db.data.get('server_settings', {})
+
+        latest_update = None
+        for raw in servers.values():
+            updated_at = raw.get('updated_at')
+            if not updated_at:
+                continue
+            try:
+                candidate = datetime.fromisoformat(updated_at)
+            except ValueError:
+                continue
+            if not latest_update or candidate > latest_update:
+                latest_update = candidate
+
+        response = {
+            'status': 'online',
+            'training_images': training_count,
+            'servers_managed': len(servers),
+            'latest_server_update': latest_update.isoformat() if latest_update else None,
+            'uptime_seconds': int(time.time() - APP_START_TIME),
+            'portal_version': '2.2.0',
+            'user': {
+                'username': session.get('username'),
+                'role': session.get('role')
+            }
+        }
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error building system info: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings', methods=['GET'])
+@dev_or_owner_required
+def list_server_settings():
+    """Return a trimmed list of all stored server configurations."""
+    try:
+        from src.database import Database
+        db = Database()
+        servers = []
+        for guild_id, data in db.data.get('server_settings', {}).items():
+            servers.append({
+                'guild_id': int(guild_id),
+                'display_name': data.get('display_name') or f'Guild {guild_id}',
+                'enabled': data.get('enabled', True),
+                'updated_at': data.get('updated_at'),
+                'notify_channel_id': data.get('notify_channel_id')
+            })
+
+        servers.sort(key=lambda item: item['display_name'])
+        return jsonify({'servers': servers}), 200
+    except Exception as e:
+        logger.error(f"Error listing server settings: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/restart', methods=['POST'])
 @dev_or_owner_required
 def restart_services():
@@ -740,6 +808,32 @@ def whitelist_channel(guild_id, channel_id):
         logger.error(f"Error whitelisting channel: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/server-settings/<int:guild_id>/whitelist-channel/<int:channel_id>', methods=['DELETE'])
+@dev_or_owner_required
+def remove_whitelist_channel(guild_id, channel_id):
+    """Remove a whitelisted channel."""
+    try:
+        from src.database import Database
+        db = Database()
+
+        settings = db.get_server_settings(guild_id)
+        before = len(settings['whitelisted_channels'])
+        settings['whitelisted_channels'] = [c for c in settings['whitelisted_channels'] if c != channel_id]
+        settings = db.update_server_settings(guild_id, settings)
+
+        removed = before != len(settings['whitelisted_channels'])
+        message = 'Channel removed from whitelist' if removed else 'Channel not found in whitelist'
+
+        return jsonify({
+            'success': True,
+            'removed': removed,
+            'message': message,
+            'settings': settings
+        }), 200
+    except Exception as e:
+        logger.error(f"Error removing whitelist channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/server-settings/<int:guild_id>/blacklist-channel/<int:channel_id>', methods=['POST'])
 @dev_or_owner_required
 def blacklist_channel(guild_id, channel_id):
@@ -759,6 +853,51 @@ def blacklist_channel(guild_id, channel_id):
         }), 200
     except Exception as e:
         logger.error(f"Error blacklisting channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings/<int:guild_id>/blacklist-channel/<int:channel_id>', methods=['DELETE'])
+@dev_or_owner_required
+def remove_blacklist_channel(guild_id, channel_id):
+    """Remove a blacklisted channel."""
+    try:
+        from src.database import Database
+        db = Database()
+
+        settings = db.get_server_settings(guild_id)
+        before = len(settings['blacklisted_channels'])
+        settings['blacklisted_channels'] = [c for c in settings['blacklisted_channels'] if c != channel_id]
+        settings = db.update_server_settings(guild_id, settings)
+
+        removed = before != len(settings['blacklisted_channels'])
+        message = 'Channel removed from blacklist' if removed else 'Channel not found in blacklist'
+
+        return jsonify({
+            'success': True,
+            'removed': removed,
+            'message': message,
+            'settings': settings
+        }), 200
+    except Exception as e:
+        logger.error(f"Error removing blacklist channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logs/recent', methods=['GET'])
+@dev_or_owner_required
+def recent_logs():
+    """Return recent bot log entries for diagnostics."""
+    limit = request.args.get('limit', default=200, type=int)
+    limit = max(10, min(limit, 500))
+
+    log_file = ROOT_PATH / 'bot.log'
+    if not log_file.exists():
+        return jsonify({'entries': []}), 200
+
+    try:
+        with open(log_file, 'r', encoding='utf-8', errors='ignore') as handle:
+            entries = [line.rstrip('\n') for line in deque(handle, maxlen=limit)]
+        return jsonify({'entries': entries}), 200
+    except Exception as e:
+        logger.error(f"Error reading logs: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.errorhandler(404)

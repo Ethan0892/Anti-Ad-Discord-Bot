@@ -140,6 +140,7 @@ class Database:
             # Return default settings
             self.data['server_settings'][guild_id_str] = {
                 'guild_id': guild_id,
+                'display_name': f'Guild {guild_id}',
                 'enabled': True,
                 'similarity_threshold': 0.65,
                 'auto_delete_images': True,
@@ -148,7 +149,8 @@ class Database:
                 'notify_channel_id': None,
                 'whitelisted_channels': [],
                 'blacklisted_channels': [],
-                'notification_cooldown_minutes': 5
+                'notification_cooldown_minutes': 5,
+                'updated_at': datetime.utcnow().isoformat()
             }
             self.save()
         return self.data['server_settings'][guild_id_str]
@@ -158,6 +160,8 @@ class Database:
         guild_id_str = str(guild_id)
         current_settings = self.get_server_settings(guild_id)
         current_settings.update(settings)
+        current_settings['updated_at'] = datetime.utcnow().isoformat()
+        current_settings.setdefault('display_name', f'Guild {guild_id}')
         self.data['server_settings'][guild_id_str] = current_settings
         self.save()
         logger.info(f"Updated server settings for guild {guild_id}")

@@ -6,767 +6,1359 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <!-- Portal Version: 2.1 (with Server Configuration) -->
-    <title>Anti-Ad Bot - Training Data Manager</title>
+    <meta name="color-scheme" content="dark">
+    <title>Anti-Ad Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <style>
+        :root {
+            --bg-900: #020817;
+            --bg-850: #050b18;
+            --bg-800: #0b1220;
+            --bg-700: #111c33;
+            --bg-600: #172544;
+            --surface: rgba(17, 28, 51, 0.88);
+            --surface-strong: rgba(17, 28, 51, 0.96);
+            --accent: #3b82f6;
+            --accent-soft: rgba(59, 130, 246, 0.18);
+            --accent-strong: #2563eb;
+            --success: #22c55e;
+            --success-soft: rgba(34, 197, 94, 0.14);
+            --danger: #ef4444;
+            --danger-soft: rgba(239, 68, 68, 0.14);
+            --warning: #f59e0b;
+            --warning-soft: rgba(245, 158, 11, 0.18);
+            --text: #f8fafc;
+            --text-soft: #cbd5f5;
+            --text-muted: #94a3b8;
+            --border: rgba(148, 163, 184, 0.18);
+            --shadow: 0 35px 80px rgba(2, 8, 23, 0.45);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+        }
+
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
-        :root {
-            --primary: #1e3a8a;      /* Dark blue */
-            --primary-light: #3b82f6; /* Light blue */
-            --primary-dark: #0c2340; /* Darker blue */
-            --secondary: #1e293b;    /* Dark slate */
-            --accent: #10b981;       /* Green */
-            --danger: #ef4444;       /* Red */
-            --bg: #0f172a;           /* Very dark blue */
-            --surface: #1e293b;      /* Surface dark */
-            --text: #f1f5f9;         /* Light text */
-            --text-muted: #94a3b8;   /* Muted text */
-            --border: #334155;       /* Border color */
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, var(--bg) 0%, var(--primary-dark) 100%);
+            margin: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.18), transparent 40%),
+                        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.12), transparent 45%),
+                        linear-gradient(145deg, var(--bg-900), var(--bg-850));
             color: var(--text);
             min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        /* Header */
-        .header {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .header h1 {
-            color: var(--primary-light);
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
-
-        .header p {
-            color: var(--text-muted);
-            font-size: 14px;
-        }
-
-        .header-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background: rgba(30, 58, 138, 0.3);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-card .value {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--primary-light);
-        }
-
-        .stat-card .label {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 5px;
-        }
-
-        /* Main content */
-        .main {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            padding: 32px;
         }
 
         @media (max-width: 768px) {
-            .main {
-                grid-template-columns: 1fr;
+            body {
+                padding: 18px;
             }
         }
 
-        /* Panel */
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        .app-shell {
+            max-width: 1280px;
+            margin: 0 auto 40px auto;
         }
 
-        .panel h2 {
-            color: var(--primary-light);
-            margin-bottom: 20px;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Upload section */
-        .upload-zone {
-            border: 2px dashed var(--primary);
-            border-radius: 8px;
-            padding: 40px 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: rgba(30, 58, 138, 0.2);
-        }
-
-        .upload-zone:hover {
-            border-color: var(--primary-light);
-            background: rgba(30, 58, 138, 0.3);
-        }
-
-        .upload-zone.dragover {
-            border-color: var(--accent);
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .upload-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
-        }
-
-        .upload-zone p {
-            color: var(--text-muted);
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .upload-zone .filename {
-            color: var(--primary-light);
-            margin-top: 10px;
-            font-weight: 500;
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        /* Button */
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--primary-light);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-            font-size: 12px;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Images list */
-        .images-list {
-            display: grid;
-            gap: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .image-item {
-            background: rgba(30, 58, 138, 0.2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
+        .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.3s ease;
+            padding: 22px 28px;
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(24px);
+            box-shadow: var(--shadow);
+            margin-bottom: 28px;
         }
 
-        .image-item:hover {
-            background: rgba(30, 58, 138, 0.3);
-            border-color: var(--primary);
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
-        .image-info {
-            flex: 1;
+        .brand-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .brand-subtitle {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .user-pill {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: var(--bg-700);
+            border: 1px solid var(--border);
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.16em;
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: var(--accent-soft);
+            transform: translateY(-1px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            padding: 22px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--surface-strong);
+            backdrop-filter: blur(16px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(120deg, rgba(59, 130, 246, 0.18), transparent 65%);
+            opacity: 0.8;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            margin-top: 12px;
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .stat-meta {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .stat-card.online .stat-value {
+            color: var(--success);
+        }
+
+        .stat-card.offline .stat-value {
+            color: var(--danger);
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 26px 28px;
+            margin-bottom: 28px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: var(--accent-soft);
+            border: 1px solid rgba(59, 130, 246, 0.28);
+            color: var(--text-soft);
+        }
+
+        .badge-success {
+            background: var(--success-soft);
+            border-color: rgba(34, 197, 94, 0.28);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: var(--warning-soft);
+            border-color: rgba(245, 158, 11, 0.28);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: var(--danger-soft);
+            border-color: rgba(239, 68, 68, 0.28);
+            color: var(--danger);
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .quick-card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 22px;
+            background: var(--bg-700);
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .quick-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(59, 130, 246, 0.65);
+            background: var(--bg-600);
+        }
+
+        .quick-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .quick-sub {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .panel-body.two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .upload-dropzone {
+            border: 2px dashed rgba(59, 130, 246, 0.35);
+            border-radius: 18px;
+            padding: 36px 20px;
+            text-align: center;
+            background: rgba(59, 130, 246, 0.08);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .upload-dropzone:hover,
+        .upload-dropzone.dragover {
+            border-color: rgba(59, 130, 246, 0.85);
+            background: rgba(59, 130, 246, 0.16);
+        }
+
+        .upload-dropzone strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .upload-dropzone p {
+            margin: 8px 0 0 0;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .image-list {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--bg-700);
+            max-height: 420px;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .image-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .image-row:hover {
+            background: rgba(59, 130, 246, 0.12);
+            transform: translateY(-1px);
         }
 
         .image-name {
-            color: var(--text);
             font-weight: 500;
-            font-size: 14px;
         }
 
         .image-meta {
-            color: var(--text-muted);
-            font-size: 12px;
             margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
-        .image-item .btn {
-            margin-left: 10px;
+        .image-actions {
+            display: flex;
+            gap: 8px;
         }
 
-        /* Config section */
-        .config-form {
+        .btn,
+        .btn-primary,
+        .btn-outline,
+        .btn-ghost,
+        .btn-danger {
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--text);
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            border-color: rgba(59, 130, 246, 0.65);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            border-color: rgba(59, 130, 246, 0.9);
+        }
+
+        .btn-outline {
+            border-color: var(--border);
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .btn-outline:hover {
+            border-color: rgba(59, 130, 246, 0.55);
+            color: var(--text-soft);
+        }
+
+        .btn-ghost {
+            border-color: transparent;
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text);
+            border-color: rgba(59, 130, 246, 0.35);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            border-color: rgba(239, 68, 68, 0.85);
+        }
+
+        .btn:disabled,
+        .btn-primary:disabled,
+        .btn-outline:disabled,
+        .btn-danger:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="search"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.55);
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        input[type="search"] {
+            width: 220px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.65);
+            background: rgba(15, 23, 42, 0.75);
+        }
+
+        .form-grid {
             display: grid;
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px 20px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
+            gap: 8px;
         }
 
-        .form-group label {
-            color: var(--text-muted);
+        .form-label {
             font-size: 12px;
-            margin-bottom: 6px;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--text-muted);
         }
 
-        .form-group input,
-        .form-group select {
-            background: rgba(30, 58, 138, 0.2);
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: var(--text-soft);
+        }
+
+        .toggle input {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .management-card {
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 16px;
+            background: var(--bg-700);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .management-card h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .management-card p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .console {
+            background: rgba(2, 6, 23, 0.75);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            max-height: 160px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .server-overview {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            padding: 18px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.55);
+            margin-bottom: 24px;
+        }
+
+        .server-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .server-meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .server-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .inline-action {
+            display: flex;
+            gap: 10px;
+        }
+
+        .server-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .server-card {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--bg-700);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .range-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .channel-pill {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 10px 12px;
-            color: var(--text);
-            font-size: 14px;
-            transition: all 0.3s ease;
+            border-radius: 12px;
+            background: rgba(59, 130, 246, 0.14);
+            font-size: 13px;
         }
 
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--primary-light);
-            background: rgba(30, 58, 138, 0.3);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        .channel-pill button {
+            border: none;
+            background: transparent;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 12px;
         }
 
-        /* Messages */
-        .alert {
-            border-radius: 8px;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            font-size: 14px;
+        .notice {
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.45);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .hide {
             display: none;
         }
 
-        .alert.show {
-            display: block;
-            animation: slideIn 0.3s ease;
+        pre {
+            margin: 0;
         }
 
-        .alert-success {
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid var(--accent);
-            color: var(--accent);
+        .footer {
+            margin-top: 36px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
-        .alert-error {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid var(--danger);
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.78);
+        }
+
+        .modal-dialog {
+            position: relative;
+            background: var(--surface-strong);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 22px;
+            width: min(92vw, 520px);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: var(--shadow);
+            z-index: 1;
+        }
+
+        .modal-dialog img {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #000;
+            max-height: 60vh;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .modal-actions {
+            margin-top: 6px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 28px;
+            right: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 60;
+        }
+
+        .toast {
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 13px;
+            opacity: 0;
+            transform: translateX(16px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast-success {
+            border-color: rgba(34, 197, 94, 0.45);
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+
+        .toast-error {
+            border-color: rgba(239, 68, 68, 0.45);
+            background: rgba(239, 68, 68, 0.1);
             color: var(--danger);
         }
 
-        .alert-info {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid var(--primary-light);
-            color: var(--primary-light);
+        .toast-warning {
+            border-color: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Loading spinner */
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 10px;
+            height: 10px;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--surface);
+            background: rgba(15, 23, 42, 0.6);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.45);
+            border-radius: 999px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-light);
+            background: rgba(59, 130, 246, 0.7);
         }
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 12px;
-            padding: 20px;
-            border-top: 1px solid var(--border);
-        }
+        @media (max-width: 720px) {
+            .panel-body.two-column,
+            .quick-grid,
+            .management-grid,
+            .server-grid {
+                grid-template-columns: 1fr;
+            }
 
-        /* Enhanced Button Styles */
-        .btn-danger:hover {
-            background: linear-gradient(135deg, #dc2626, #991b1b);
-            border-color: #fca5a5;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
-        }
+            .panel {
+                padding: 22px;
+            }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #3b82f6, #1e40af);
-            border-color: #60a5fa;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-        }
+            input[type="search"] {
+                width: 100%;
+            }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+            .inline-action {
+                flex-direction: column;
+            }
 
-        .btn:disabled:hover {
-            transform: none;
-            box-shadow: none;
-        }
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 18px;
+            }
 
-        /* Output/Console Styles */
-        #updateOutput,
-        #restartOutput,
-        #syncOutput {
-            font-size: 12px;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            word-break: break-all;
-            color: #94a3b8;
-        }
-
-        #updateOutput::after,
-        #restartOutput::after,
-        #syncOutput::after {
-            content: '';
+            .topbar-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>Anti-Ad Bot - Training Data Manager</h1>
-            <p>Upload and manage spam detection training images</p>
-            <div class="header-stats">
-                <div class="stat-card">
-                    <div class="value" id="statusValue">Checking...</div>
-                    <div class="label">Status</div>
-                </div>
-                <div class="stat-card">
-                    <div class="value" id="imageCountValue">0</div>
-                    <div class="label">Training Images</div>
-                </div>
-                <div class="stat-card">
-                    <div class="value">Active</div>
-                    <div class="label">Bot Status</div>
-                </div>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-title">Anti-Ad</span>
+                <span class="brand-subtitle">Control Center</span>
             </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main">
-            <!-- Upload Panel -->
-            <div class="panel">
-                <h2>Upload Training Image</h2>
-                
-                <div id="alertContainer"></div>
-
-                <div class="upload-zone" id="uploadZone">
-                    <div class="upload-icon">↑</div>
-                    <p>
-                        <strong>Click to select or drag & drop</strong><br>
-                        PNG, JPG, JPEG, GIF, WEBP, BMP<br>
-                        <small>Max 10MB</small>
-                    </p>
-                    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp">
+            <div class="topbar-actions">
+                <button class="btn-icon" id="refreshAllBtn" title="Refresh dashboard">&#8635;</button>
+                <div class="user-pill">
+                    <span class="user-name">{{ username }}</span>
+                    <span class="user-role">{{ role|default('user')|capitalize }}</span>
                 </div>
+                <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+            </div>
+        </header>
 
-                <button class="btn btn-primary" id="uploadBtn" style="width: 100%; margin-top: 15px; justify-content: center;">
-                    Upload Image
+        <section class="stats-grid">
+            <div class="stat-card" id="statusCard">
+                <div class="stat-label">System Status</div>
+                <div class="stat-value" id="statStatus">Checking...</div>
+                <div class="stat-meta" id="statusSubtitle">Awaiting first check</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Training Images</div>
+                <div class="stat-value" id="statImages">{{ image_count }}</div>
+                <div class="stat-meta">Ready for detection</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Server Profiles</div>
+                <div class="stat-value" id="statServers">0</div>
+                <div class="stat-meta">Managed guilds</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Portal Uptime</div>
+                <div class="stat-value" id="statUptime">--</div>
+                <div class="stat-meta">Since last restart</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Quick Actions</h2>
+                <span class="badge" id="updateStatus">Checking updates...</span>
+            </div>
+            <div class="quick-grid">
+                <button class="quick-card" id="quickUpload">
+                    <span class="quick-title">Training Uploads</span>
+                    <span class="quick-sub">Manage your spam dataset</span>
+                </button>
+                <button class="quick-card" id="quickServer">
+                    <span class="quick-title">Server Configuration</span>
+                    <span class="quick-sub">Tune thresholds and channels</span>
+                </button>
+                <button class="quick-card" id="quickLogs">
+                    <span class="quick-title">Recent Activity</span>
+                    <span class="quick-sub">Inspect the latest bot events</span>
+                </button>
+                <button class="quick-card" id="quickSync">
+                    <span class="quick-title">GitHub Sync</span>
+                    <span class="quick-sub">Pull fresh training images</span>
                 </button>
             </div>
+        </section>
 
-            <!-- Images List Panel -->
-            <div class="panel">
-                <h2>Training Images</h2>
-                <div class="images-list" id="imagesList">
-                    <p style="color: var(--text-muted); text-align: center; padding: 20px;">
-                        Loading...
-                    </p>
+        <section class="panel" id="uploadSection">
+            <div class="panel-header">
+                <h2>Training Library</h2>
+                <div class="panel-actions">
+                    <input type="search" id="imageSearchInput" placeholder="Search images...">
+                    <button class="btn-outline" id="refreshImagesBtn">Refresh</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Configuration Panel (Full Width) -->
-        <div class="panel">
-            <h2>Configuration Settings</h2>
-            
-            <div class="config-form">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    <div class="form-group">
-                        <label for="threshold">Similarity Threshold (0.0-1.0)</label>
-                        <input type="number" id="threshold" min="0" max="1" step="0.05" value="0.75">
+            <div class="panel-body two-column">
+                <div>
+                    <div class="upload-dropzone" id="uploadDropzone">
+                        <strong>Drag &amp; drop or click to upload</strong>
+                        <p>PNG, JPG, JPEG, GIF, WEBP, BMP<br>Maximum file size 10MB</p>
                     </div>
-
-                    <div class="form-group">
-                        <label for="punishmentType">Punishment Type</label>
-                        <select id="punishmentType">
-                            <option value="mute">Mute</option>
-                            <option value="timeout">Timeout</option>
-                            <option value="kick">Kick</option>
-                            <option value="ban">Ban</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="firstOffense">First Offense Action</label>
-                        <select id="firstOffense">
-                            <option value="mute">Mute</option>
-                            <option value="timeout">Timeout</option>
-                            <option value="kick">Kick</option>
-                            <option value="ban">Ban</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="secondOffense">Second Offense Action</label>
-                        <select id="secondOffense">
-                            <option value="mute">Mute</option>
-                            <option value="timeout">Timeout</option>
-                            <option value="kick">Kick</option>
-                            <option value="ban">Ban</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="thirdOffense">Third Offense Action</label>
-                        <select id="thirdOffense">
-                            <option value="mute">Mute</option>
-                            <option value="timeout">Timeout</option>
-                            <option value="kick">Kick</option>
-                            <option value="ban">Ban</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="muteDuration">Mute Duration (Days)</label>
-                        <input type="number" id="muteDuration" min="0" max="30" value="7">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="timeoutDuration">Timeout Duration (Minutes)</label>
-                        <input type="number" id="timeoutDuration" min="1" max="10080" value="60">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="autoDelete">Auto Delete Images</label>
-                        <select id="autoDelete">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
+                    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp,.bmp" hidden>
+                    <button class="btn-primary" id="uploadBtn" style="width: 100%; margin-top: 16px;">Upload Image</button>
+                    <div class="hint" id="uploadHint">No file selected</div>
                 </div>
-
-                <button class="btn btn-primary" id="saveConfigBtn" style="width: 100%; margin-top: 20px; justify-content: center;">
-                    Save Configuration
-                </button>
-            </div>
-        </div>
-
-        <!-- System Management Panel (Full Width) -->
-        <div class="panel">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-                <h2 style="margin: 0;">System Management</h2>
-                <div style="display: flex; gap: 10px;">
-                    <div class="status-badge" id="updateStatus" style="background: rgba(59, 130, 246, 0.2); border: 1px solid var(--primary); padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--text-muted);">
-                        Checking updates...
-                    </div>
+                <div class="image-list" id="imagesList">
+                    <p class="hint">Loading images...</p>
                 </div>
             </div>
+        </section>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <!-- Update Section -->
-                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Application Updates</h3>
-                    
-                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
-                        Check for the latest version and pull updates from the GitHub repository. Your configuration will be preserved.
-                    </p>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-primary" id="checkUpdatesBtn" style="flex: 1; justify-content: center;">
-                            Check for Updates
-                        </button>
-                        <button class="btn btn-primary" id="pullUpdatesBtn" style="flex: 1; justify-content: center; opacity: 0.5; cursor: not-allowed;" disabled>
-                            Pull Updates
-                        </button>
-                    </div>
-
-                    <div id="updateOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
-                    </div>
-                </div>
-
-                <!-- Restart Section -->
-                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Service Management</h3>
-                    
-                    <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
-                        Restart the bot and web server to apply configuration changes. Service will be offline for 10-15 seconds.
-                    </p>
-
-                    <button class="btn btn-danger" id="restartBotBtn" style="width: 100%; justify-content: center;">
-                        Restart Bot and Web Server
-                    </button>
-
-                    <div id="restartOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
-                    </div>
+        <section class="panel" id="configSection">
+            <div class="panel-header">
+                <h2>Global Configuration</h2>
+                <div class="panel-actions">
+                    <button class="btn-primary" id="saveConfigBtn">Save Global Config</button>
                 </div>
             </div>
-
-            <!-- GitHub Sync Button -->
-            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
-                <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Training Data Management</h3>
-                <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px;">
-                    Synchronize training images from the GitHub repository. New images will be downloaded and immediately available for detection.
-                </p>
-                <button class="btn btn-primary" id="syncGithubBtn" style="width: 100%; justify-content: center;">
-                    Sync Training Data from GitHub
-                </button>
-                <div id="syncOutput" style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); min-height: 60px; max-height: 150px; overflow-y: auto; display: none;">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="configThreshold">Similarity Threshold</label>
+                    <input type="number" id="configThreshold" min="0" max="1" step="0.05" value="0.75">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configPunishmentType">Default Punishment</label>
+                    <select id="configPunishmentType">
+                        <option value="mute">Mute</option>
+                        <option value="timeout">Timeout</option>
+                        <option value="kick">Kick</option>
+                        <option value="ban">Ban</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configFirstOffense">First Offense</label>
+                    <select id="configFirstOffense">
+                        <option value="mute">Mute</option>
+                        <option value="timeout">Timeout</option>
+                        <option value="kick">Kick</option>
+                        <option value="ban">Ban</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configSecondOffense">Second Offense</label>
+                    <select id="configSecondOffense">
+                        <option value="mute">Mute</option>
+                        <option value="timeout">Timeout</option>
+                        <option value="kick">Kick</option>
+                        <option value="ban">Ban</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configThirdOffense">Third Offense</label>
+                    <select id="configThirdOffense">
+                        <option value="mute">Mute</option>
+                        <option value="timeout">Timeout</option>
+                        <option value="kick">Kick</option>
+                        <option value="ban">Ban</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configMuteDuration">Mute Duration (days)</label>
+                    <input type="number" id="configMuteDuration" min="0" max="30" value="7">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configTimeoutDuration">Timeout (minutes)</label>
+                    <input type="number" id="configTimeoutDuration" min="1" max="10080" value="60">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="configAutoDelete">Auto Delete Images</label>
+                    <select id="configAutoDelete">
+                        <option value="true">Enabled</option>
+                        <option value="false">Disabled</option>
+                    </select>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Server Settings Configuration Panel -->
-        <div class="panel" style="margin-bottom: 30px;">
-            <div style="margin-bottom: 20px;">
-                <h2 style="color: var(--primary-light); font-size: 22px; margin-bottom: 10px;">Server Configuration</h2>
-                <p style="color: var(--text-muted); font-size: 13px;">Configure spam detection settings for this server</p>
+        <section class="panel" id="systemSection">
+            <div class="panel-header">
+                <h2>System Management</h2>
             </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <!-- Detection Settings -->
-                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Detection Settings</h3>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
-                            <input type="checkbox" id="enableDetection" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span>Enable Spam Detection</span>
-                        </label>
+            <div class="management-grid">
+                <div class="management-card">
+                    <h3>Application Updates</h3>
+                    <p>Check for new releases and pull the latest code from GitHub. Restart the services after pulling updates.</p>
+                    <div class="action-row">
+                        <button class="btn-outline" id="checkUpdatesBtn">Check for Updates</button>
+                        <button class="btn-primary" id="pullUpdatesBtn" disabled>Pull Updates</button>
                     </div>
+                    <pre class="console" id="updateOutput">Press "Check for Updates" to begin.</pre>
+                </div>
+                <div class="management-card">
+                    <h3>Service Lifecycle</h3>
+                    <p>Restart the bot and web server to apply configuration updates. Expect 10-15 seconds of downtime.</p>
+                    <div class="action-row">
+                        <button class="btn-danger" id="restartBotBtn">Restart Services</button>
+                    </div>
+                    <pre class="console" id="restartOutput">No restart requested.</pre>
+                </div>
+                <div class="management-card">
+                    <h3>Training Data Sync</h3>
+                    <p>Synchronize the Training-Data folder with the latest assets from GitHub. Files become available immediately.</p>
+                    <div class="action-row">
+                        <button class="btn-outline" id="syncGithubBtn">Sync from GitHub</button>
+                    </div>
+                    <pre class="console" id="syncOutput">Ready to sync.</pre>
+                </div>
+            </div>
+        </section>
 
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Similarity Threshold</label>
-                        <input type="range" id="thresholdSlider" min="0.5" max="0.95" step="0.05" value="0.65" style="width: 100%; cursor: pointer;">
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 5px;">
-                            <span>Lower (More Sensitive)</span>
-                            <span id="thresholdValue">0.65</span>
-                            <span>Higher (Less Sensitive)</span>
+        <section class="panel" id="serverSection">
+            <div class="panel-header">
+                <h2>Server Configuration</h2>
+                <div class="panel-actions">
+                    <select id="serverSelect">
+                        <option value="">Select server profile</option>
+                    </select>
+                    <form id="manualGuildForm" class="inline-action" style="margin: 0;">
+                        <input type="number" id="manualGuildInput" placeholder="Enter guild ID" min="0">
+                        <button class="btn-outline" type="submit">Load</button>
+                    </form>
+                </div>
+            </div>
+            <div class="notice hide" id="serverAccessNotice">Only owners and developers can manage server profiles.</div>
+            <div class="server-overview">
+                <div>
+                    <div class="server-title" id="serverNameDisplay">No server selected</div>
+                    <div class="server-meta">Guild ID: <span id="serverIdDisplay">-</span></div>
+                    <span class="badge" id="serverStatusBadge">Not loaded</span>
+                </div>
+                <div class="server-actions">
+                    <input type="text" id="serverDisplayNameInput" placeholder="Rename server profile">
+                    <button class="btn-outline" id="renameServerBtn" type="button">Rename</button>
+                </div>
+            </div>
+            <div class="server-grid">
+                <div class="server-card">
+                    <h3>Detection Controls</h3>
+                    <label class="toggle">
+                        <input type="checkbox" id="serverEnableDetection">
+                        <span>Enable spam detection</span>
+                    </label>
+                    <label class="form-label" for="serverThresholdSlider">Similarity threshold</label>
+                    <input type="range" id="serverThresholdSlider" min="0.50" max="0.95" step="0.05" value="0.65">
+                    <div class="range-meta">
+                        <span>More sensitive</span>
+                        <strong id="serverThresholdValue">0.65</strong>
+                        <span>More strict</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="serverAutoDelete">
+                        <span>Auto delete detected images</span>
+                    </label>
+                    <button class="btn-primary" id="saveServerSettingsBtn" type="button">Save Detection Settings</button>
+                </div>
+                <div class="server-card">
+                    <h3>Notification Rules</h3>
+                    <label class="toggle">
+                        <input type="checkbox" id="serverSendGlobalNotification">
+                        <span>Send global notification</span>
+                    </label>
+                    <div class="form-group">
+                        <label class="form-label" for="serverNotificationCooldown">Notification cooldown (minutes)</label>
+                        <input type="number" id="serverNotificationCooldown" min="1" max="60" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="serverMuteDuration">Mute duration (days)</label>
+                        <input type="number" id="serverMuteDuration" min="0" max="365" value="7">
+                        <span class="hint">0 = permanent mute</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="serverNotifyChannelInput">Notification channel ID</label>
+                        <div class="inline-action">
+                            <input type="text" id="serverNotifyChannelInput" placeholder="000000000000000000">
+                            <button class="btn-outline" id="setNotifyChannelBtn" type="button">Set Channel</button>
                         </div>
                     </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
-                            <input type="checkbox" id="autoDeleteImages" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span>Auto-delete Detected Images</span>
-                        </label>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="saveServerSettings()" style="width: 100%; justify-content: center;">
-                        Save Detection Settings
-                    </button>
-                </div>
-
-                <!-- Notification Settings -->
-                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Notification Settings</h3>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
-                            <input type="checkbox" id="sendGlobalNotification" checked style="width: 18px; height: 18px; cursor: pointer;">
-                            <span>Send Global Notifications</span>
-                        </label>
-                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px; margin-left: 28px;">Posts a message when spam is detected (with cooldown)</p>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Notification Cooldown (minutes)</label>
-                        <input type="number" id="notificationCooldown" min="1" max="60" value="5" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Mute Duration (days)</label>
-                        <input type="number" id="muteDuration" min="0" max="365" value="7" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
-                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">0 = Permanent mute</p>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="saveServerSettings()" style="width: 100%; justify-content: center;">
-                        Save Notification Settings
-                    </button>
+                    <canvas id="channelChartCanvas" height="140"></canvas>
                 </div>
             </div>
-
-            <!-- Channel Management -->
-            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
-                <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Channel Management</h3>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                        <h4 style="color: var(--primary-light); font-size: 14px; margin-bottom: 12px;">Whitelisted Channels</h4>
-                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Bot won't scan images in these channels</p>
-                        <input type="text" id="whitelistChannelId" placeholder="Channel ID" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 10px;">
-                        <button class="btn btn-primary" onclick="whitelistChannel()" style="width: 100%; justify-content: center; font-size: 13px;">
-                            Add to Whitelist
-                        </button>
-                        <div id="whitelistList" style="margin-top: 12px; font-size: 12px; color: var(--text-muted);"></div>
+            <div class="server-grid">
+                <div class="server-card">
+                    <h3>Whitelisted Channels</h3>
+                    <div class="inline-action">
+                        <input type="text" id="whitelistChannelInput" placeholder="Channel ID">
+                        <button class="btn-outline" id="addWhitelistBtn" type="button">Add</button>
                     </div>
-
-                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
-                        <h4 style="color: var(--primary-light); font-size: 14px; margin-bottom: 12px;">Blacklisted Channels</h4>
-                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Bot will ONLY scan images in these channels</p>
-                        <input type="text" id="blacklistChannelId" placeholder="Channel ID" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 10px;">
-                        <button class="btn btn-primary" onclick="blacklistChannel()" style="width: 100%; justify-content: center; font-size: 13px;">
-                            Add to Blacklist
-                        </button>
-                        <div id="blacklistList" style="margin-top: 12px; font-size: 12px; color: var(--text-muted);"></div>
+                    <div class="channel-list" id="whitelistList"></div>
+                </div>
+                <div class="server-card">
+                    <h3>Blacklisted Channels</h3>
+                    <div class="inline-action">
+                        <input type="text" id="blacklistChannelInput" placeholder="Channel ID">
+                        <button class="btn-outline" id="addBlacklistBtn" type="button">Add</button>
                     </div>
+                    <div class="channel-list" id="blacklistList"></div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Footer -->
-        <div class="footer">
-            <p>Anti-Ad Bot v2.0 | Secure Training Data Manager</p>
+        <section class="panel" id="logsSection">
+            <div class="panel-header">
+                <h2>Recent Activity</h2>
+                <div class="panel-actions">
+                    <button class="btn-outline" id="refreshLogsBtn" type="button">Refresh Logs</button>
+                </div>
+            </div>
+            <pre class="console" id="logViewer">Loading log tail...</pre>
+        </section>
+
+        <footer class="footer">
+            <span>Anti-Ad Portal {{ portal_version|default('2.2.0') }}</span>
+            <span>Signed in as {{ username }}</span>
+        </footer>
+    </div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-backdrop" id="closePreviewBackdrop"></div>
+        <div class="modal-dialog">
+            <button class="modal-close" id="closePreviewBtn" title="Close">&#10005;</button>
+            <h3 id="previewTitle">Image Preview</h3>
+            <img src="" alt="Preview" id="previewImage">
+            <div class="modal-actions">
+                <a class="btn-primary" id="downloadPreviewBtn" href="#" download>Download</a>
+            </div>
         </div>
     </div>
 
+    <script id="portal-context-data" type="application/json">
+        {{ {
+            "username": username,
+            "role": role|default('user'),
+            "trainingImages": training_images|default([]),
+            "imageCount": image_count,
+            "portalVersion": portal_version|default('2.2.0')
+        } | tojson | safe }}
+    </script>
+
     <script>
-        // Constants
-        const API_TOKEN = 'your-secure-token-here'; // Set from environment
+        const contextNode = document.getElementById('portal-context-data');
+        const PORTAL_CONTEXT = contextNode ? JSON.parse(contextNode.textContent || '{}') : {};
+
         const API_BASE = '/api';
+        const API_TOKEN = 'your-secure-token-here';
+        const USER_ROLE = (PORTAL_CONTEXT.role || 'user').toLowerCase();
+        const HAS_ADMIN_ACCESS = ['owner', 'dev'].includes(USER_ROLE);
 
-        // DOM Elements
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const imagesList = document.getElementById('imagesList');
-        const imageCountValue = document.getElementById('imageCountValue');
-        const statusValue = document.getElementById('statusValue');
-        const alertContainer = document.getElementById('alertContainer');
-        const saveConfigBtn = document.getElementById('saveConfigBtn');
+        const state = {
+            images: [],
+            imageFilter: '',
+            servers: [],
+            selectedServerId: null,
+            serverSettings: null,
+            logs: [],
+            systemInfo: null,
+            userRole: USER_ROLE
+        };
 
-        // Drag and drop
-        uploadZone.addEventListener('click', () => fileInput.click());
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
+        let channelChart = null;
 
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
+        const $ = (id) => document.getElementById(id);
 
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        saveConfigBtn.addEventListener('click', saveConfig);
+        function pushToast(message, type = 'info') {
+            const container = $('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 250);
+            }, 4000);
+        }
 
-        // System Management Event Listeners
-        document.getElementById('checkUpdatesBtn').addEventListener('click', checkForUpdates);
-        document.getElementById('pullUpdatesBtn').addEventListener('click', pullUpdates);
-        document.getElementById('restartBotBtn').addEventListener('click', restartBot);
-        document.getElementById('syncGithubBtn').addEventListener('click', syncTrainingDataFromGitHub);
+        function formatBytes(bytes) {
+            if (!bytes || isNaN(bytes)) return '0 KB';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unit = 0;
+            while (size >= 1024 && unit < units.length - 1) {
+                size /= 1024;
+                unit++;
+            }
+            return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
 
-        // File upload handler
-        async function handleFiles(files) {
-            if (files.length === 0) return;
+        function formatDuration(seconds) {
+            if (seconds == null || isNaN(seconds)) return '--';
+            const mins = Math.floor(seconds / 60);
+            const hrs = Math.floor(mins / 60);
+            const remMins = mins % 60;
+            if (hrs > 0) {
+                return `${hrs}h ${remMins}m`;
+            }
+            return `${Math.max(mins, 1)}m`;
+        }
 
-            const file = files[0];
+        function scrollToSection(id) {
+            const target = $(id);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function updateStatusCard(statusText, online) {
+            const statusCard = $('statusCard');
+            const statusValue = $('statStatus');
+            const subtitle = $('statusSubtitle');
+            if (!statusCard || !statusValue || !subtitle) return;
+            statusCard.classList.toggle('online', !!online);
+            statusCard.classList.toggle('offline', !online);
+            statusValue.textContent = statusText;
+            subtitle.textContent = `Last checked ${new Date().toLocaleTimeString()}`;
+        }
+
+        function updateServerBadge(text, className = 'badge') {
+            const badge = $('serverStatusBadge');
+            if (!badge) return;
+            badge.className = className;
+            badge.textContent = text;
+        }
+
+        async function init() {
+            bindEvents();
+            applyRoleRestrictions();
+            await loadConfig();
+            await refreshDashboard();
+            setInterval(checkStatus, 30000);
+            setInterval(fetchSystemInfo, 60000);
+        }
+
+        function bindEvents() {
+            const dropzone = $('uploadDropzone');
+            const fileInput = $('fileInput');
+            const uploadBtn = $('uploadBtn');
+            const imageSearch = $('imageSearchInput');
+
+            if (dropzone && fileInput) {
+                dropzone.addEventListener('click', () => {
+                    if (!HAS_ADMIN_ACCESS) {
+                        pushToast('Uploads available to developer or owner roles.', 'warning');
+                        return;
+                    }
+                    fileInput.click();
+                });
+                dropzone.addEventListener('dragover', (event) => {
+                    event.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+                dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+                dropzone.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    dropzone.classList.remove('dragover');
+                    if (!HAS_ADMIN_ACCESS) {
+                        pushToast('Uploads available to developer or owner roles.', 'warning');
+                        return;
+                    }
+                    if (event.dataTransfer?.files?.length) {
+                        handleFiles(event.dataTransfer.files);
+                    }
+                });
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', (event) => {
+                    if (!HAS_ADMIN_ACCESS) {
+                        fileInput.value = '';
+                        pushToast('Uploads available to developer or owner roles.', 'warning');
+                        return;
+                    }
+                    if (event.target.files?.length) {
+                        const file = event.target.files[0];
+                        $('uploadHint').textContent = `Ready to upload: ${file.name}`;
+                        handleFiles(event.target.files);
+                    }
+                });
+            }
+
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', () => {
+                    if (!HAS_ADMIN_ACCESS) {
+                        pushToast('Uploads available to developer or owner roles.', 'warning');
+                        return;
+                    }
+                    fileInput.click();
+                });
+            }
+
+            $('refreshImagesBtn')?.addEventListener('click', () => loadImages(true));
+            imageSearch?.addEventListener('input', (event) => {
+                state.imageFilter = event.target.value.toLowerCase();
+                renderImages();
+            });
+
+            $('saveConfigBtn')?.addEventListener('click', saveConfig);
+            $('checkUpdatesBtn')?.addEventListener('click', checkForUpdates);
+            $('pullUpdatesBtn')?.addEventListener('click', pullUpdates);
+            $('restartBotBtn')?.addEventListener('click', restartBot);
+            $('syncGithubBtn')?.addEventListener('click', syncTrainingDataFromGitHub);
+            $('refreshAllBtn')?.addEventListener('click', refreshDashboard);
+
+            $('quickUpload')?.addEventListener('click', () => scrollToSection('uploadSection'));
+            $('quickServer')?.addEventListener('click', () => scrollToSection('serverSection'));
+            $('quickLogs')?.addEventListener('click', () => scrollToSection('logsSection'));
+            $('quickSync')?.addEventListener('click', () => syncTrainingDataFromGitHub());
+
+            $('serverThresholdSlider')?.addEventListener('input', (event) => {
+                $('serverThresholdValue').textContent = parseFloat(event.target.value).toFixed(2);
+            });
+
+            $('saveServerSettingsBtn')?.addEventListener('click', saveServerSettings);
+            $('setNotifyChannelBtn')?.addEventListener('click', setNotificationChannel);
+            $('renameServerBtn')?.addEventListener('click', renameServerProfile);
+            $('addWhitelistBtn')?.addEventListener('click', whitelistChannel);
+            $('addBlacklistBtn')?.addEventListener('click', blacklistChannel);
+            $('refreshLogsBtn')?.addEventListener('click', loadLogs);
+
+            $('manualGuildForm')?.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const guildId = parseInt($('manualGuildInput').value, 10);
+                if (!isNaN(guildId) && guildId >= 0) {
+                    setActiveServer(guildId);
+                }
+            });
+
+            $('serverSelect')?.addEventListener('change', (event) => {
+                const value = parseInt(event.target.value, 10);
+                if (!isNaN(value)) {
+                    setActiveServer(value);
+                }
+            });
+
+            $('closePreviewBtn')?.addEventListener('click', () => togglePreview(false));
+            $('closePreviewBackdrop')?.addEventListener('click', () => togglePreview(false));
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    togglePreview(false);
+                }
+            });
+        }
+
+        async function refreshDashboard() {
+            await Promise.all([
+                fetchSystemInfo(),
+                loadImages(),
+                loadLogs()
+            ]);
+            await fetchServerList();
+            await checkStatus();
+        }
+
+        async function handleFiles(fileList) {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Uploads available to developer or owner roles.', 'warning');
+                return;
+            }
+            if (!fileList || fileList.length === 0) return;
+            const file = fileList[0];
             const formData = new FormData();
             formData.append('file', file);
 
-            uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<span class="spinner"></span> Uploading...';
+            const uploadBtn = $('uploadBtn');
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/training-images/upload`, {
@@ -778,56 +1370,96 @@
                 });
 
                 const data = await response.json();
-
                 if (response.ok) {
-                    showAlert('Image uploaded successfully!', 'success');
-                    fileInput.value = '';
-                    loadImages();
+                    pushToast('Image uploaded successfully.', 'success');
+                    $('uploadHint').textContent = 'Upload complete.';
+                    await loadImages(true);
                 } else {
-                    showAlert(data.error || 'Upload failed', 'error');
+                    pushToast(data.error || 'Upload failed.', 'error');
                 }
             } catch (error) {
-                showAlert('Upload error: ' + error.message, 'error');
+                pushToast(`Upload error: ${error.message}`, 'error');
             } finally {
-                uploadBtn.disabled = false;
-                uploadBtn.innerHTML = 'Upload Image';
-            }
-        }
-
-        // Load training images
-        async function loadImages() {
-            try {
-                const response = await fetch(`${API_BASE}/training-images`);
-                const data = await response.json();
-                const images = data.images || [];
-
-                imageCountValue.textContent = images.length;
-
-                if (images.length === 0) {
-                    imagesList.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No training images yet</p>';
-                    return;
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Upload Image';
                 }
-
-                imagesList.innerHTML = images.map(img => `
-                    <div class="image-item">
-                        <div class="image-info">
-                            <div class="image-name">${img.name}</div>
-                            <div class="image-meta">
-                                ${(img.size / 1024).toFixed(1)} KB • Modified: ${new Date(img.modified).toLocaleDateString()}
-                            </div>
-                        </div>
-                        <button class="btn btn-danger" onclick="deleteImage('${img.name}')">Delete</button>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Load images error:', error);
-                imagesList.innerHTML = '<p style="color: var(--danger);">Error loading images</p>';
             }
         }
 
-        // Delete image
+        async function loadImages(force = false) {
+            try {
+                const response = await fetch(`${API_BASE}/training-images${force ? '?_=' + Date.now() : ''}`);
+                if (!response.ok) throw new Error('Failed to load images');
+                const data = await response.json();
+                state.images = data.images || [];
+                $('statImages').textContent = state.images.length;
+                renderImages();
+            } catch (error) {
+                $('imagesList').innerHTML = `<p class="hint">Error loading images: ${error.message}</p>`;
+            }
+        }
+
+        function renderImages() {
+            const list = $('imagesList');
+            if (!list) return;
+            if (!state.images.length) {
+                list.innerHTML = '<p class="hint">No training images yet. Upload to get started.</p>';
+                return;
+            }
+
+            const filter = state.imageFilter;
+            const filtered = state.images.filter((img) => !filter || img.name.toLowerCase().includes(filter));
+
+            if (!filtered.length) {
+                list.innerHTML = '<p class="hint">No images match your search.</p>';
+                return;
+            }
+
+            list.innerHTML = filtered.map((img) => {
+                const actions = [];
+                actions.push(`<button class="btn-ghost" data-action="preview" data-filename="${img.name}">Preview</button>`);
+                if (HAS_ADMIN_ACCESS) {
+                    actions.push(`<button class="btn-danger" data-action="delete" data-filename="${img.name}">Delete</button>`);
+                }
+                return `
+                    <div class="image-row" data-filename="${img.name}">
+                        <div>
+                            <div class="image-name">${img.name}</div>
+                            <div class="image-meta">${formatBytes(img.size)} • Modified ${new Date(img.modified).toLocaleString()}</div>
+                        </div>
+                        <div class="image-actions">
+                            ${actions.join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            list.querySelectorAll('[data-action="preview"]').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    const filename = event.currentTarget.getAttribute('data-filename');
+                    previewImage(filename);
+                });
+            });
+
+            if (HAS_ADMIN_ACCESS) {
+                list.querySelectorAll('[data-action="delete"]').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        const filename = event.currentTarget.getAttribute('data-filename');
+                        deleteImage(filename);
+                    });
+                });
+            }
+        }
+
         async function deleteImage(filename) {
-            if (!confirm(`Delete ${filename}?`)) return;
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to delete images.', 'warning');
+                return;
+            }
+            if (!filename) return;
+            const confirmed = window.confirm(`Delete ${filename}?`);
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`${API_BASE}/training-images/${filename}`, {
@@ -836,20 +1468,42 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
+                const data = await response.json();
                 if (response.ok) {
-                    showAlert('Image deleted successfully', 'success');
-                    loadImages();
+                    pushToast('Image deleted.', 'success');
+                    await loadImages(true);
                 } else {
-                    const data = await response.json();
-                    showAlert(data.error || 'Delete failed', 'error');
+                    pushToast(data.error || 'Delete failed.', 'error');
                 }
             } catch (error) {
-                showAlert('Delete error: ' + error.message, 'error');
+                pushToast(`Delete error: ${error.message}`, 'error');
             }
         }
 
-        // Load configuration
+        function previewImage(filename) {
+            if (!filename) return;
+            const modal = $('previewModal');
+            const image = $('previewImage');
+            const title = $('previewTitle');
+            const download = $('downloadPreviewBtn');
+            if (!modal || !image || !title || !download) return;
+            const url = `/Training-Data/${encodeURIComponent(filename)}`;
+            image.src = url;
+            title.textContent = filename;
+            download.href = url;
+            download.setAttribute('download', filename);
+            togglePreview(true);
+        }
+
+        function togglePreview(show) {
+            const modal = $('previewModal');
+            if (!modal) return;
+            modal.classList.toggle('open', !!show);
+            if (!show) {
+                $('previewImage').src = '';
+            }
+        }
+
         async function loadConfig() {
             try {
                 const response = await fetch(`${API_BASE}/config`, {
@@ -857,38 +1511,42 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 if (!response.ok) return;
-
                 const config = await response.json();
-                document.getElementById('threshold').value = config.SIMILARITY_THRESHOLD || '0.75';
-                document.getElementById('punishmentType').value = config.PUNISHMENT_TYPE || 'mute';
-                document.getElementById('firstOffense').value = config.FIRST_OFFENSE_ACTION || 'mute';
-                document.getElementById('secondOffense').value = config.SECOND_OFFENSE_ACTION || 'timeout';
-                document.getElementById('thirdOffense').value = config.THIRD_OFFENSE_ACTION || 'kick';
-                document.getElementById('muteDuration').value = config.MUTE_DURATION_DAYS || '7';
-                document.getElementById('timeoutDuration').value = config.TIMEOUT_DURATION_MINUTES || '60';
-                document.getElementById('autoDelete').value = config.AUTO_DELETE_IMAGE || 'true';
+                $('configThreshold').value = config.SIMILARITY_THRESHOLD || '0.75';
+                $('configPunishmentType').value = config.PUNISHMENT_TYPE || 'mute';
+                $('configFirstOffense').value = config.FIRST_OFFENSE_ACTION || 'mute';
+                $('configSecondOffense').value = config.SECOND_OFFENSE_ACTION || 'timeout';
+                $('configThirdOffense').value = config.THIRD_OFFENSE_ACTION || 'kick';
+                $('configMuteDuration').value = config.MUTE_DURATION_DAYS || '7';
+                $('configTimeoutDuration').value = config.TIMEOUT_DURATION_MINUTES || '60';
+                $('configAutoDelete').value = config.AUTO_DELETE_IMAGE || 'true';
             } catch (error) {
-                console.error('Load config error:', error);
+                pushToast(`Failed to load config: ${error.message}`, 'warning');
             }
         }
 
-        // Save configuration
         async function saveConfig() {
-            const config = {
-                SIMILARITY_THRESHOLD: document.getElementById('threshold').value,
-                PUNISHMENT_TYPE: document.getElementById('punishmentType').value,
-                FIRST_OFFENSE_ACTION: document.getElementById('firstOffense').value,
-                SECOND_OFFENSE_ACTION: document.getElementById('secondOffense').value,
-                THIRD_OFFENSE_ACTION: document.getElementById('thirdOffense').value,
-                MUTE_DURATION_DAYS: document.getElementById('muteDuration').value,
-                TIMEOUT_DURATION_MINUTES: document.getElementById('timeoutDuration').value,
-                AUTO_DELETE_IMAGE: document.getElementById('autoDelete').value
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to save configuration.', 'warning');
+                return;
+            }
+            const payload = {
+                SIMILARITY_THRESHOLD: $('configThreshold').value,
+                PUNISHMENT_TYPE: $('configPunishmentType').value,
+                FIRST_OFFENSE_ACTION: $('configFirstOffense').value,
+                SECOND_OFFENSE_ACTION: $('configSecondOffense').value,
+                THIRD_OFFENSE_ACTION: $('configThirdOffense').value,
+                MUTE_DURATION_DAYS: $('configMuteDuration').value,
+                TIMEOUT_DURATION_MINUTES: $('configTimeoutDuration').value,
+                AUTO_DELETE_IMAGE: $('configAutoDelete').value
             };
 
-            saveConfigBtn.disabled = true;
-            saveConfigBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            const button = $('saveConfigBtn');
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Saving...';
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/config`, {
@@ -897,65 +1555,67 @@
                         'X-API-Token': API_TOKEN,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(config)
+                    body: JSON.stringify(payload)
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    showAlert('Configuration saved successfully!', 'success');
+                    pushToast('Configuration saved. Restart to apply changes.', 'success');
                 } else {
-                    showAlert(data.error || 'Save failed', 'error');
+                    pushToast(data.error || 'Failed to save configuration.', 'error');
                 }
             } catch (error) {
-                showAlert('Save error: ' + error.message, 'error');
+                pushToast(`Save error: ${error.message}`, 'error');
             } finally {
-                saveConfigBtn.disabled = false;
-                saveConfigBtn.innerHTML = 'Save Configuration';
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = 'Save Global Config';
+                }
             }
         }
 
-        // Show alert message
-        function showAlert(message, type) {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} show`;
-            alert.textContent = message;
-            alertContainer.innerHTML = '';
-            alertContainer.appendChild(alert);
-
-            setTimeout(() => {
-                alert.classList.remove('show');
-                setTimeout(() => alert.remove(), 300);
-            }, 4000);
+        async function fetchSystemInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/system/info`);
+                if (!response.ok) throw new Error('Unable to load system info');
+                const info = await response.json();
+                state.systemInfo = info;
+                $('statImages').textContent = info.training_images ?? state.images.length;
+                $('statServers').textContent = info.servers_managed ?? 0;
+                $('statUptime').textContent = formatDuration(info.uptime_seconds);
+            } catch (error) {
+                $('statUptime').textContent = '--';
+            }
         }
 
-        // Check bot status
         async function checkStatus() {
             try {
                 const response = await fetch(`${API_BASE}/status`);
                 if (response.ok) {
-                    statusValue.textContent = 'Online';
+                    updateStatusCard('Online', true);
                 } else {
-                    statusValue.textContent = 'Offline';
+                    updateStatusCard('Offline', false);
                 }
-            } catch {
-                statusValue.textContent = 'Offline';
+            } catch (error) {
+                updateStatusCard('Offline', false);
             }
         }
 
-        // System Management Functions
-
-        // Check for Updates
         async function checkForUpdates() {
-            const btn = document.getElementById('checkUpdatesBtn');
-            const output = document.getElementById('updateOutput');
-            const pullBtn = document.getElementById('pullUpdatesBtn');
-            const status = document.getElementById('updateStatus');
+            const btn = $('checkUpdatesBtn');
+            const output = $('updateOutput');
+            const pullBtn = $('pullUpdatesBtn');
+            const badge = $('updateStatus');
+            if (!btn || !output || !pullBtn || !badge) return;
+
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to check for updates.', 'warning');
+                return;
+            }
 
             btn.disabled = true;
-            btn.innerHTML = 'Checking...';
-            output.style.display = 'block';
-            output.innerHTML = 'Checking for updates...';
+            btn.textContent = 'Checking...';
+            output.textContent = 'Checking for updates...';
+            pullBtn.disabled = true;
 
             try {
                 const response = await fetch(`${API_BASE}/updates/check`, {
@@ -963,44 +1623,47 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    output.innerHTML = data.message || 'No updates available.';
-                    status.textContent = data.status === 'up_to_date' ? 'Up to Date' : 'Updates Available';
-                    status.style.background = data.status === 'up_to_date' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(252, 191, 73, 0.2)';
-                    status.style.borderColor = data.status === 'up_to_date' ? 'var(--accent)' : '#fbbf24';
-                    
-                    if (data.status !== 'up_to_date') {
+                    if (data.update_available) {
+                        output.textContent = `Updates available. Latest commit:\n${data.latest_commit}`;
+                        badge.className = 'badge badge-warning';
+                        badge.textContent = `${data.commits_behind} update(s) available`;
                         pullBtn.disabled = false;
-                        pullBtn.style.opacity = '1';
-                        pullBtn.style.cursor = 'pointer';
+                    } else {
+                        output.textContent = 'Portal is up to date.';
+                        badge.className = 'badge badge-success';
+                        badge.textContent = 'Up to date';
                     }
                 } else {
-                    output.innerHTML = 'Error checking updates: ' + (data.error || 'Unknown error');
-                    status.textContent = 'Error';
-                    status.style.background = 'rgba(239, 68, 68, 0.2)';
-                    status.style.borderColor = 'var(--danger)';
+                    output.textContent = `Error checking updates: ${data.error || 'Unknown error'}`;
+                    badge.className = 'badge badge-danger';
+                    badge.textContent = 'Update check failed';
                 }
             } catch (error) {
-                output.innerHTML = 'Connection error: ' + error.message;
-                status.textContent = 'Error';
+                output.textContent = `Connection error: ${error.message}`;
+                badge.className = 'badge badge-danger';
+                badge.textContent = 'Connection issue';
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Check for Updates';
+                btn.textContent = 'Check for Updates';
             }
         }
 
-        // Pull Updates
         async function pullUpdates() {
-            const btn = document.getElementById('pullUpdatesBtn');
-            const output = document.getElementById('updateOutput');
-            const status = document.getElementById('updateStatus');
+            const btn = $('pullUpdatesBtn');
+            const output = $('updateOutput');
+            const badge = $('updateStatus');
+            if (!btn || !output || !badge) return;
+
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to pull updates.', 'warning');
+                return;
+            }
 
             btn.disabled = true;
-            btn.innerHTML = 'Pulling Updates...';
-            output.innerHTML = 'Pulling latest updates from GitHub...';
+            btn.textContent = 'Pulling...';
+            output.textContent = 'Pulling latest updates from GitHub...';
 
             try {
                 const response = await fetch(`${API_BASE}/updates/pull`, {
@@ -1009,41 +1672,44 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    output.innerHTML = data.message || 'Updates pulled successfully!';
-                    status.textContent = 'Updated';
-                    status.style.background = 'rgba(16, 185, 129, 0.2)';
-                    status.style.borderColor = 'var(--accent)';
-                    showAlert('Updates pulled successfully. Please restart the bot to apply changes.', 'success');
+                    output.textContent = data.message || 'Updates pulled successfully.';
+                    badge.className = 'badge badge-success';
+                    badge.textContent = 'Updates pulled';
+                    pushToast('Updates pulled. Restart services to apply.', 'success');
                 } else {
-                    output.innerHTML = 'Error: ' + (data.error || 'Failed to pull updates');
-                    showAlert('Error pulling updates', 'error');
+                    output.textContent = data.message || data.error || 'Failed to pull updates';
+                    badge.className = 'badge badge-danger';
+                    badge.textContent = 'Pull failed';
+                    pushToast('Update pull failed.', 'error');
                 }
             } catch (error) {
-                output.innerHTML = 'Connection error: ' + error.message;
-                showAlert('Connection error: ' + error.message, 'error');
+                output.textContent = `Connection error: ${error.message}`;
+                badge.className = 'badge badge-danger';
+                badge.textContent = 'Connection issue';
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Pull Updates';
+                btn.textContent = 'Pull Updates';
             }
         }
 
-        // Restart Bot
         async function restartBot() {
-            if (!confirm('This will restart the bot and web server. You will be disconnected for 10-15 seconds. Continue?')) {
+            const btn = $('restartBotBtn');
+            const output = $('restartOutput');
+            if (!btn || !output) return;
+
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to restart services.', 'warning');
                 return;
             }
 
-            const btn = document.getElementById('restartBotBtn');
-            const output = document.getElementById('restartOutput');
+            const confirmed = window.confirm('Restart bot and web server? Expect 10-15 seconds of downtime.');
+            if (!confirmed) return;
 
             btn.disabled = true;
-            btn.innerHTML = 'Restarting...';
-            output.style.display = 'block';
-            output.innerHTML = 'Sending restart command...\nService will be offline for 10-15 seconds...';
+            btn.textContent = 'Restarting...';
+            output.textContent = 'Sending restart command...';
 
             try {
                 const response = await fetch(`${API_BASE}/restart`, {
@@ -1052,45 +1718,36 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    output.innerHTML = data.message || 'Restart command sent.\nWaiting for service to come back online...';
-                    showAlert('Restart initiated. Service will be back online in 10-15 seconds.', 'success');
-                    
-                    // Wait and check if service is back
-                    setTimeout(() => {
-                        checkStatus();
-                        btn.disabled = false;
-                        btn.innerHTML = 'Restart Bot and Web Server';
-                    }, 15000);
+                    output.textContent = data.message || 'Restart command sent. Portal will reload shortly.';
+                    pushToast('Restart requested. Services will be back momentarily.', 'success');
                 } else {
-                    output.innerHTML = 'Error: ' + (data.error || 'Failed to restart');
-                    showAlert('Error restarting service', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = 'Restart Bot and Web Server';
+                    output.textContent = data.error || 'Restart failed. Check logs for details.';
+                    pushToast('Failed to restart services.', 'error');
                 }
             } catch (error) {
-                output.innerHTML = 'Connection error: ' + error.message + '\nService may be restarting. Please refresh in a moment.';
-                showAlert('Restart may be in progress. Page will auto-refresh.', 'success');
-                
-                // Try to reconnect after delay
-                setTimeout(() => {
-                    location.reload();
-                }, 15000);
+                output.textContent = `Restart error: ${error.message}`;
+                pushToast(`Restart error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Restart Services';
             }
         }
 
-        // Sync Training Data from GitHub
         async function syncTrainingDataFromGitHub() {
-            const btn = document.getElementById('syncGithubBtn');
-            const output = document.getElementById('syncOutput');
+            const btn = $('syncGithubBtn');
+            const output = $('syncOutput');
+            if (!btn || !output) return;
+
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to sync training data.', 'warning');
+                return;
+            }
 
             btn.disabled = true;
-            btn.innerHTML = 'Syncing...';
-            output.style.display = 'block';
-            output.innerHTML = 'Synchronizing training data from GitHub...\nThis may take a moment...';
+            btn.textContent = 'Syncing...';
+            output.textContent = 'Syncing training data from GitHub...';
 
             try {
                 const response = await fetch(`${API_BASE}/training-images/sync-github`, {
@@ -1099,205 +1756,482 @@
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    output.innerHTML = data.message || 'Sync completed successfully!\n' + 
-                        'Images synced: ' + (data.image_count || 0);
-                    showAlert('Training data synchronized! ' + (data.image_count || 0) + ' images available.', 'success');
-                    loadImages();
+                    output.textContent = data.message || 'Sync completed.';
+                    pushToast('Training data synchronized.', 'success');
+                    await loadImages(true);
+                    $('statImages').textContent = data.image_count ?? state.images.length;
                 } else {
-                    output.innerHTML = 'Error: ' + (data.error || 'Sync failed');
-                    showAlert('Sync failed: ' + (data.error || 'Unknown error'), 'error');
+                    output.textContent = data.error || data.message || 'Sync failed.';
+                    pushToast('Sync failed. Check server logs.', 'error');
                 }
             } catch (error) {
-                output.innerHTML = 'Connection error: ' + error.message;
-                showAlert('Sync error: ' + error.message, 'error');
+                output.textContent = `Sync error: ${error.message}`;
+                pushToast(`Sync error: ${error.message}`, 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Sync Training Data from GitHub';
+                btn.textContent = 'Sync from GitHub';
             }
         }
 
-        // Server Settings Functions
-        let currentGuildId = null; // Will be set from window or config
+        async function fetchServerList() {
+            const select = $('serverSelect');
+            const notice = $('serverAccessNotice');
+            if (!select) return;
 
-        async function loadServerSettings() {
-            if (!currentGuildId) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}`);
-                const settings = await response.json();
-
-                document.getElementById('enableDetection').checked = settings.enabled !== false;
-                document.getElementById('thresholdSlider').value = settings.similarity_threshold || 0.65;
-                document.getElementById('thresholdValue').textContent = (settings.similarity_threshold || 0.65).toFixed(2);
-                document.getElementById('autoDeleteImages').checked = settings.auto_delete_images !== false;
-                document.getElementById('sendGlobalNotification').checked = settings.send_global_notification !== false;
-                document.getElementById('notificationCooldown').value = settings.notification_cooldown_minutes || 5;
-                document.getElementById('muteDuration').value = settings.mute_duration_days || 7;
-
-                updateChannelLists(settings);
-            } catch (error) {
-                console.error('Error loading server settings:', error);
-            }
-        }
-
-        function updateChannelLists(settings) {
-            const whitelistList = document.getElementById('whitelistList');
-            const blacklistList = document.getElementById('blacklistList');
-
-            whitelistList.innerHTML = (settings.whitelisted_channels || []).map(id => 
-                `<div style="padding: 5px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-                    <span>#${id}</span>
-                    <button onclick="removeWhitelist(${id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px;">Remove</button>
-                </div>`
-            ).join('');
-
-            blacklistList.innerHTML = (settings.blacklisted_channels || []).map(id =>
-                `<div style="padding: 5px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between;">
-                    <span>#${id}</span>
-                    <button onclick="removeBlacklist(${id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px;">Remove</button>
-                </div>`
-            ).join('');
-        }
-
-        async function saveServerSettings() {
-            if (!currentGuildId) {
-                showAlert('Guild ID not configured', 'error');
+            if (!HAS_ADMIN_ACCESS) {
+                select.innerHTML = '<option value="">Admin access required</option>';
+                select.disabled = true;
+                notice?.classList.remove('hide');
                 return;
             }
 
-            const settings = {
-                enabled: document.getElementById('enableDetection').checked,
-                similarity_threshold: parseFloat(document.getElementById('thresholdSlider').value),
-                auto_delete_images: document.getElementById('autoDeleteImages').checked,
-                send_global_notification: document.getElementById('sendGlobalNotification').checked,
-                notification_cooldown_minutes: parseInt(document.getElementById('notificationCooldown').value),
-                mute_duration_days: parseInt(document.getElementById('muteDuration').value)
+            select.disabled = false;
+            notice?.classList.add('hide');
+            select.innerHTML = '<option value="">Loading...</option>';
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings`);
+                if (response.status === 403) {
+                    select.innerHTML = '<option value="">Unauthorized</option>';
+                    select.disabled = true;
+                    notice?.classList.remove('hide');
+                    return;
+                }
+                if (!response.ok) throw new Error('Failed to load server list');
+                const data = await response.json();
+                state.servers = data.servers || [];
+
+                if (!state.servers.length) {
+                    select.innerHTML = '<option value="">No servers found</option>';
+                    return;
+                }
+
+                select.innerHTML = '<option value="">Select server profile</option>' +
+                    state.servers.map((server) => `<option value="${server.guild_id}">${server.display_name}</option>`).join('');
+
+                if (state.selectedServerId) {
+                    select.value = state.selectedServerId;
+                }
+
+                if (!state.selectedServerId && state.servers.length) {
+                    setActiveServer(state.servers[0].guild_id);
+                }
+            } catch (error) {
+                select.innerHTML = `<option value="">Error: ${error.message}</option>`;
+                pushToast(`Failed to load server list: ${error.message}`, 'error');
+            }
+        }
+
+        async function setActiveServer(guildId) {
+            if (!guildId) return;
+            state.selectedServerId = guildId;
+            const select = $('serverSelect');
+            if (select) {
+                select.value = String(guildId);
+            }
+            await loadServerSettings(guildId);
+        }
+
+        async function loadServerSettings(guildId) {
+            if (!guildId) return;
+            updateServerBadge('Loading...', 'badge');
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}`);
+                if (!response.ok) throw new Error('Unable to load settings');
+                const data = await response.json();
+                state.serverSettings = data;
+                renderServerSettings();
+                updateServerBadge('Loaded', 'badge badge-success');
+            } catch (error) {
+                updateServerBadge('Error', 'badge badge-danger');
+                pushToast(`Failed to load server settings: ${error.message}`, 'error');
+            }
+        }
+
+        function renderServerSettings() {
+            const settings = state.serverSettings;
+            if (!settings) return;
+
+            $('serverNameDisplay').textContent = settings.display_name || `Guild ${settings.guild_id}`;
+            $('serverIdDisplay').textContent = settings.guild_id || state.selectedServerId || '-';
+            $('serverDisplayNameInput').value = settings.display_name || '';
+
+            $('serverEnableDetection').checked = settings.enabled !== false;
+            const threshold = parseFloat(settings.similarity_threshold ?? 0.65);
+            $('serverThresholdSlider').value = threshold.toFixed(2);
+            $('serverThresholdValue').textContent = threshold.toFixed(2);
+            $('serverAutoDelete').checked = settings.auto_delete_images !== false;
+            $('serverSendGlobalNotification').checked = settings.send_global_notification !== false;
+            $('serverNotificationCooldown').value = settings.notification_cooldown_minutes ?? 5;
+            $('serverMuteDuration').value = settings.mute_duration_days ?? 7;
+            $('serverNotifyChannelInput').value = settings.notify_channel_id ?? '';
+
+            renderChannels('whitelistList', settings.whitelisted_channels || [], 'whitelist');
+            renderChannels('blacklistList', settings.blacklisted_channels || [], 'blacklist');
+            updateChannelChart();
+        }
+
+        function updateChannelChart() {
+            const context = $('channelChartCanvas');
+            if (!context || !state.serverSettings) return;
+
+            const data = {
+                labels: ['Whitelisted', 'Blacklisted'],
+                datasets: [{
+                    label: 'Channels',
+                    data: [
+                        (state.serverSettings.whitelisted_channels || []).length,
+                        (state.serverSettings.blacklisted_channels || []).length
+                    ],
+                    backgroundColor: ['rgba(59, 130, 246, 0.45)', 'rgba(239, 68, 68, 0.45)'],
+                    borderColor: ['rgba(59, 130, 246, 0.85)', 'rgba(239, 68, 68, 0.85)'],
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }]
+            };
+
+            if (channelChart) {
+                channelChart.data = data;
+                channelChart.update();
+            } else {
+                channelChart = new Chart(context, {
+                    type: 'bar',
+                    data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0,
+                                    color: '#cbd5f5'
+                                },
+                                grid: {
+                                    color: 'rgba(148, 163, 184, 0.18)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#cbd5f5'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderChannels(elementId, channels, listType) {
+            const container = $(elementId);
+            if (!container) return;
+
+            if (!channels.length) {
+                container.innerHTML = '<p class="hint">No channels configured.</p>';
+                return;
+            }
+
+            container.innerHTML = channels.map((channelId) => `
+                <div class="channel-pill">
+                    <span>${channelId}</span>
+                    ${HAS_ADMIN_ACCESS ? `<button data-type="${listType}" data-channel="${channelId}">Remove</button>` : ''}
+                </div>
+            `).join('');
+
+            if (HAS_ADMIN_ACCESS) {
+                container.querySelectorAll('button').forEach((button) => {
+                    button.addEventListener('click', (event) => {
+                        const type = event.currentTarget.getAttribute('data-type');
+                        const channelId = event.currentTarget.getAttribute('data-channel');
+                        removeChannel(type, channelId);
+                    });
+                });
+            }
+        }
+
+        async function setNotificationChannel() {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to set notification channel.', 'warning');
+                return;
+            }
+
+            const guildId = state.selectedServerId;
+            const channelId = parseInt($('serverNotifyChannelInput').value, 10);
+            if (!guildId || isNaN(channelId)) {
+                pushToast('Enter a valid channel ID first.', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}/notification-channel/${channelId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    state.serverSettings = data.settings;
+                    renderServerSettings();
+                    pushToast('Notification channel saved.', 'success');
+                } else {
+                    pushToast(data.error || 'Failed to save notification channel.', 'error');
+                }
+            } catch (error) {
+                pushToast(`Error setting notification channel: ${error.message}`, 'error');
+            }
+        }
+
+        async function renameServerProfile() {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to rename server.', 'warning');
+                return;
+            }
+
+            const guildId = state.selectedServerId;
+            if (!guildId) {
+                pushToast('Select a server profile first.', 'warning');
+                return;
+            }
+
+            const newName = $('serverDisplayNameInput').value.trim();
+            if (!newName) {
+                pushToast('Display name cannot be empty.', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-API-Token': API_TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ display_name: newName })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    state.serverSettings = data.settings;
+                    const server = state.servers.find((item) => item.guild_id === guildId);
+                    if (server) {
+                        server.display_name = newName;
+                    }
+                    renderServerSettings();
+                    await fetchServerList();
+                    pushToast('Server renamed.', 'success');
+                } else {
+                    pushToast(data.error || 'Unable to rename server.', 'error');
+                }
+            } catch (error) {
+                pushToast(`Rename failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveServerSettings() {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to save server settings.', 'warning');
+                return;
+            }
+
+            const guildId = state.selectedServerId;
+            if (!guildId) {
+                pushToast('Select a server profile first.', 'warning');
+                return;
+            }
+
+            const payload = {
+                enabled: $('serverEnableDetection').checked,
+                similarity_threshold: parseFloat($('serverThresholdSlider').value),
+                auto_delete_images: $('serverAutoDelete').checked,
+                send_global_notification: $('serverSendGlobalNotification').checked,
+                notification_cooldown_minutes: parseInt($('serverNotificationCooldown').value, 10),
+                mute_duration_days: parseInt($('serverMuteDuration').value, 10)
             };
 
             try {
-                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}`, {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Token': API_TOKEN
+                        'X-API-Token': API_TOKEN,
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(settings)
+                    body: JSON.stringify(payload)
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    showAlert('Server settings saved successfully', 'success');
+                    state.serverSettings = data.settings;
+                    renderServerSettings();
+                    pushToast('Server settings saved.', 'success');
                 } else {
-                    showAlert('Error: ' + (data.error || 'Failed to save settings'), 'error');
+                    pushToast(data.error || 'Failed to save settings.', 'error');
                 }
             } catch (error) {
-                showAlert('Error saving settings: ' + error.message, 'error');
+                pushToast(`Error saving settings: ${error.message}`, 'error');
             }
         }
 
         async function whitelistChannel() {
-            if (!currentGuildId) {
-                showAlert('Guild ID not configured', 'error');
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to update whitelist.', 'warning');
                 return;
             }
 
-            const channelId = document.getElementById('whitelistChannelId').value;
-            if (!channelId) {
-                showAlert('Please enter a channel ID', 'error');
+            const guildId = state.selectedServerId;
+            const channelId = parseInt($('whitelistChannelInput').value, 10);
+            if (!guildId || isNaN(channelId)) {
+                pushToast('Enter a valid channel ID first.', 'warning');
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}/whitelist-channel/${channelId}`, {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}/whitelist-channel/${channelId}`, {
                     method: 'POST',
                     headers: {
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    showAlert('Channel added to whitelist', 'success');
-                    document.getElementById('whitelistChannelId').value = '';
-                    updateChannelLists(data.settings);
+                    state.serverSettings = data.settings;
+                    $('whitelistChannelInput').value = '';
+                    renderServerSettings();
+                    pushToast('Channel added to whitelist.', 'success');
                 } else {
-                    showAlert('Error: ' + (data.error || 'Failed to whitelist channel'), 'error');
+                    pushToast(data.error || 'Failed to whitelist channel.', 'error');
                 }
             } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
+                pushToast(`Whitelist error: ${error.message}`, 'error');
             }
         }
 
         async function blacklistChannel() {
-            if (!currentGuildId) {
-                showAlert('Guild ID not configured', 'error');
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to update blacklist.', 'warning');
                 return;
             }
 
-            const channelId = document.getElementById('blacklistChannelId').value;
-            if (!channelId) {
-                showAlert('Please enter a channel ID', 'error');
+            const guildId = state.selectedServerId;
+            const channelId = parseInt($('blacklistChannelInput').value, 10);
+            if (!guildId || isNaN(channelId)) {
+                pushToast('Enter a valid channel ID first.', 'warning');
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}/blacklist-channel/${channelId}`, {
+                const response = await fetch(`${API_BASE}/server-settings/${guildId}/blacklist-channel/${channelId}`, {
                     method: 'POST',
                     headers: {
                         'X-API-Token': API_TOKEN
                     }
                 });
-
                 const data = await response.json();
-
                 if (response.ok) {
-                    showAlert('Channel added to blacklist', 'success');
-                    document.getElementById('blacklistChannelId').value = '';
-                    updateChannelLists(data.settings);
+                    state.serverSettings = data.settings;
+                    $('blacklistChannelInput').value = '';
+                    renderServerSettings();
+                    pushToast('Channel added to blacklist.', 'success');
                 } else {
-                    showAlert('Error: ' + (data.error || 'Failed to blacklist channel'), 'error');
+                    pushToast(data.error || 'Failed to blacklist channel.', 'error');
                 }
             } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
+                pushToast(`Blacklist error: ${error.message}`, 'error');
             }
         }
 
-        async function removeWhitelist(channelId) {
-            // TODO: Implement remove from whitelist
-            showAlert('Remove from whitelist not yet implemented', 'info');
+        async function removeChannel(type, channelId) {
+            if (!HAS_ADMIN_ACCESS) {
+                pushToast('Admin access required to modify channels.', 'warning');
+                return;
+            }
+
+            const guildId = state.selectedServerId;
+            if (!guildId || !channelId) return;
+
+            const endpoint = type === 'whitelist'
+                ? `${API_BASE}/server-settings/${guildId}/whitelist-channel/${channelId}`
+                : `${API_BASE}/server-settings/${guildId}/blacklist-channel/${channelId}`;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    state.serverSettings = data.settings;
+                    renderServerSettings();
+                    pushToast('Channel removed.', 'success');
+                } else {
+                    pushToast(data.error || 'Failed to remove channel.', 'error');
+                }
+            } catch (error) {
+                pushToast(`Remove error: ${error.message}`, 'error');
+            }
         }
 
-        async function removeBlacklist(channelId) {
-            // TODO: Implement remove from blacklist
-            showAlert('Remove from blacklist not yet implemented', 'info');
+        async function loadLogs() {
+            const viewer = $('logViewer');
+            if (!viewer) return;
+
+            if (!HAS_ADMIN_ACCESS) {
+                viewer.textContent = 'Log viewer available to developer and owner roles.';
+                return;
+            }
+
+            viewer.textContent = 'Fetching recent logs...';
+            try {
+                const response = await fetch(`${API_BASE}/logs/recent?limit=250`);
+                if (response.status === 403) {
+                    viewer.textContent = 'You do not have permission to view logs.';
+                    return;
+                }
+                if (!response.ok) throw new Error('Failed to load logs');
+                const data = await response.json();
+                state.logs = data.entries || [];
+                viewer.textContent = state.logs.length ? state.logs.join('\n') : 'No recent log entries.';
+            } catch (error) {
+                viewer.textContent = `Log fetch error: ${error.message}`;
+            }
         }
 
-        // Update threshold display
-        document.getElementById('thresholdSlider').addEventListener('input', (e) => {
-            document.getElementById('thresholdValue').textContent = parseFloat(e.target.value).toFixed(2);
+        function applyRoleRestrictions() {
+            if (HAS_ADMIN_ACCESS) {
+                return;
+            }
+
+            $('uploadDropzone')?.classList.add('disabled');
+            $('uploadHint').textContent = 'Uploads available to developer or owner accounts.';
+            if ($('uploadBtn')) {
+                $('uploadBtn').disabled = true;
+                $('uploadBtn').textContent = 'Upload disabled';
+            }
+            $('pullUpdatesBtn')?.setAttribute('disabled', 'true');
+            $('checkUpdatesBtn')?.setAttribute('disabled', 'true');
+            $('restartBotBtn')?.setAttribute('disabled', 'true');
+            $('syncGithubBtn')?.setAttribute('disabled', 'true');
+            $('saveConfigBtn')?.setAttribute('disabled', 'true');
+            $('saveServerSettingsBtn')?.setAttribute('disabled', 'true');
+            $('renameServerBtn')?.setAttribute('disabled', 'true');
+            $('setNotifyChannelBtn')?.setAttribute('disabled', 'true');
+            $('addWhitelistBtn')?.setAttribute('disabled', 'true');
+            $('addBlacklistBtn')?.setAttribute('disabled', 'true');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            init().catch((error) => {
+                console.error('Initialization error', error);
+                pushToast(`Initialization error: ${error.message}`, 'error');
+            });
         });
-
-        // Initialize
-        async function init() {
-            // Try to get guild ID from window object or config
-            currentGuildId = window.guildId || 0; // Default to 0 for testing
-            
-            loadImages();
-            loadConfig();
-            checkStatus();
-            if (currentGuildId) {
-                loadServerSettings();
-            }
-            setInterval(checkStatus, 30000); // Check every 30 seconds
-        }
-
-        init();
     </script>
 </body>
 </html>
