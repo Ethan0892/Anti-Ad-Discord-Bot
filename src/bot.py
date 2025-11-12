@@ -8,6 +8,7 @@ from typing import Optional
 import asyncio
 import sys
 from pathlib import Path
+import re
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -39,6 +40,35 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Initialize components
 detector = ImageDetector(config.TRAINING_DATA_PATH, config.SIMILARITY_THRESHOLD)
 db = Database()
+
+def extract_image_urls(text: str) -> list:
+    """
+    Extract image URLs from message text.
+    Supports Discord CDN links and common image hosting URLs.
+    """
+    if not text:
+        return []
+    
+    # URL regex pattern
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    urls = re.findall(url_pattern, text)
+    
+    # Filter for image URLs
+    image_urls = []
+    image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp')
+    
+    for url in urls:
+        # Check if URL ends with image extension or contains image parameters
+        if any(url.lower().endswith(ext) for ext in image_extensions):
+            image_urls.append(url)
+        # Check for Discord CDN URLs (they often have query parameters but are still images)
+        elif 'cdn.discordapp.com' in url.lower() and ('/attachments/' in url.lower() or '/stickers/' in url.lower()):
+            image_urls.append(url)
+        # Check for other common image hosting sites
+        elif any(host in url.lower() for host in ['imgur.com', 'giphy.com', 'tenor.com', 'media.discord']):
+            image_urls.append(url)
+    
+    return image_urls
 
 # Rate limiting
 class RateLimiter:
@@ -144,54 +174,111 @@ async def on_message(message: discord.Message):
     await bot.process_commands(message)
     
     # Check if message has attachments
-    if not message.attachments:
+    has_attachments = len(message.attachments) > 0
+    
+    # Check if message has image URLs
+    image_urls = extract_image_urls(message.content)
+    
+    # Skip if no attachments and no URLs
+    if not has_attachments and not image_urls:
         return
     
-    # Check each attachment
-    for attachment in message.attachments:
-        # Only check image attachments
-        if not attachment.content_type or not attachment.content_type.startswith('image/'):
-            continue
-        
-        try:
-            logger.info(f"Checking image from {message.author.name}: {attachment.filename}")
+    # Check attachments
+    if has_attachments:
+        for attachment in message.attachments:
+            # Only check image attachments
+            if not attachment.content_type or not attachment.content_type.startswith('image/'):
+                continue
             
-            # Download image
-            async with aiohttp.ClientSession() as session:
-                async with session.get(attachment.url) as resp:
-                    if resp.status == 200:
-                        image_bytes = await resp.read()
-                    else:
-                        logger.warning(f"Failed to download image: HTTP {resp.status}")
-                        continue
-            
-            # Detect if image is similar to training data
-            is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes)
-            
-            if is_similar:
-                logger.warning(
-                    f"Detected spam image from {message.author.name} "
-                    f"(confidence: {confidence:.2%}, matched: {matched_image})"
-                )
+            try:
+                logger.info(f"Checking image attachment from {message.author.name}: {attachment.filename}")
                 
-                # Delete the message
-                await message.delete()
+                # Download image
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        if resp.status == 200:
+                            image_bytes = await resp.read()
+                        else:
+                            logger.warning(f"Failed to download image: HTTP {resp.status}")
+                            continue
                 
-                # Mute the user
-                await mute_user(
-                    message.guild,
-                    message.author,
-                    f"Posting spam/advertisement image (matched: {matched_image}, confidence: {confidence:.2%})"
-                )
+                # Detect if image is similar to training data
+                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes)
                 
-                # Log to log channel
-                await log_detection(message, matched_image, confidence)
+                if is_similar:
+                    logger.warning(
+                        f"Detected spam image from {message.author.name} "
+                        f"(confidence: {confidence:.2%}, matched: {matched_image})"
+                    )
+                    
+                    # Delete the message
+                    await message.delete()
+                    
+                    # Mute the user
+                    await mute_user(
+                        message.guild,
+                        message.author,
+                        f"Posting spam/advertisement image (matched: {matched_image}, confidence: {confidence:.2%})"
+                    )
+                    
+                    # Log to log channel
+                    await log_detection(message, matched_image, confidence)
+                    
+                    # Notify user via DM
+                    await notify_user(message.author, matched_image, confidence)
+                    
+                    return  # Stop processing after first detection
+                    
+            except Exception as e:
+                logger.error(f"Error processing attachment {attachment.filename}: {e}")
+    
+    # Check image URLs in message content
+    if image_urls:
+        for url in image_urls:
+            try:
+                logger.info(f"Checking image URL from {message.author.name}: {url[:80]}...")
                 
-                # Notify user via DM
-                await notify_user(message.author, matched_image, confidence)
+                # Download image from URL
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                        if resp.status == 200:
+                            image_bytes = await resp.read()
+                        else:
+                            logger.warning(f"Failed to download URL image: HTTP {resp.status}")
+                            continue
                 
-        except Exception as e:
-            logger.error(f"Error processing attachment {attachment.filename}: {e}")
+                # Detect if image is similar to training data
+                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes)
+                
+                if is_similar:
+                    logger.warning(
+                        f"Detected spam image URL from {message.author.name} "
+                        f"(confidence: {confidence:.2%}, matched: {matched_image})"
+                    )
+                    
+                    # Delete the message
+                    await message.delete()
+                    
+                    # Mute the user
+                    await mute_user(
+                        message.guild,
+                        message.author,
+                        f"Posting spam/advertisement image via URL (matched: {matched_image}, confidence: {confidence:.2%})"
+                    )
+                    
+                    # Log to log channel
+                    await log_detection(message, matched_image, confidence)
+                    
+                    # Notify user via DM
+                    await notify_user(message.author, matched_image, confidence)
+                    
+                    return  # Stop processing after first detection
+                    
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout downloading image URL from {message.author.name}")
+                continue
+            except Exception as e:
+                logger.error(f"Error processing URL image from {message.author.name}: {e}")
 
 
 async def mute_user(guild: discord.Guild, member: discord.Member, reason: str):
