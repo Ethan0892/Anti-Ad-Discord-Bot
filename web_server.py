@@ -600,17 +600,9 @@ def sync_training_data():
         logger.info("Starting GitHub sync for training data...")
         app_path = Path(__file__).parent
         
-        # Configure git to use fast-forward only for merging
-        subprocess.run(
-            ['git', 'config', 'pull.ff', 'only'],
-            cwd=str(app_path),
-            capture_output=True,
-            timeout=10
-        )
-        
-        # Try to pull with fast-forward only
+        # Pull latest Training-Data from GitHub
         result = subprocess.run(
-            ['git', 'pull', 'origin', 'main'],
+            ['git', 'pull', 'origin', 'main', '--ff-only'],
             cwd=str(app_path),
             capture_output=True,
             text=True,
@@ -622,18 +614,6 @@ def sync_training_data():
             logger.info(f"Git pull stdout: {result.stdout}")
         if result.stderr:
             logger.info(f"Git pull stderr: {result.stderr}")
-        
-        # If pull failed, try force checkout of remote branch
-        if result.returncode != 0:
-            logger.warning("Git pull failed, attempting force checkout...")
-            checkout_result = subprocess.run(
-                ['git', 'checkout', '-f', 'origin/main', '--', 'Training-Data/'],
-                cwd=str(app_path),
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            logger.info(f"Git checkout result: {checkout_result.returncode}")
         
         # Count training images
         image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])

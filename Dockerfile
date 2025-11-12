@@ -30,17 +30,21 @@ COPY setup_web.py .
 RUN mkdir -p logs
 
 # Initialize git repository and configure it
+# First fetch from GitHub, then reset to match remote exactly
 RUN git init && \
     git remote add origin https://github.com/Ethan0892/Anti-Ad-Discord-Bot.git && \
     git config --global --add safe.directory /app && \
     git config --global user.email "bot@anti-ad.local" && \
     git config --global user.name "Anti-Ad Bot" && \
+    git config pull.ff only && \
     echo "Training-Data/" > .gitignore && \
     echo "*.log" >> .gitignore && \
     echo "data.json" >> .gitignore && \
     echo ".env" >> .gitignore && \
     git add .gitignore && \
-    git commit -m "Initial commit with gitignore"
+    git commit -m "Initial gitignore" && \
+    git fetch origin main && \
+    git reset --hard origin/main
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
