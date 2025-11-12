@@ -600,22 +600,45 @@ def sync_training_data():
         logger.info("Starting GitHub sync for training data...")
         app_path = Path(__file__).parent
         
-        # Run git pull to update repository
-        result = subprocess.run(
-            ['git', 'pull', 'origin', 'main'],
+        # First, try to fetch from remote to get latest Training-Data
+        fetch_result = subprocess.run(
+            ['git', 'fetch', 'origin', 'main'],
             cwd=str(app_path),
             capture_output=True,
             text=True,
             timeout=30
         )
         
-        logger.info(f"Git pull stdout: {result.stdout}")
-        if result.stderr:
-            logger.warning(f"Git pull stderr: {result.stderr}")
+        logger.info(f"Git fetch result: {fetch_result.returncode}")
+        if fetch_result.stderr:
+            logger.info(f"Git fetch stderr: {fetch_result.stderr}")
         
-        if result.returncode != 0:
-            logger.error(f"Git pull failed with code {result.returncode}")
-            return jsonify({'error': f'Git sync failed: {result.stderr}'}), 500
+        # Then merge the fetched training data
+        merge_result = subprocess.run(
+            ['git', 'merge', 'origin/main', '--allow-unrelated-histories'],
+            cwd=str(app_path),
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        logger.info(f"Git merge result: {merge_result.returncode}")
+        if merge_result.stderr:
+            logger.info(f"Git merge stderr: {merge_result.stderr}")
+        
+        # If both failed, try a simple pull
+        if fetch_result.returncode != 0 or merge_result.returncode != 0:
+            logger.warning("Fetch/merge failed, attempting git pull...")
+            pull_result = subprocess.run(
+                ['git', 'pull', 'origin', 'main', '--allow-unrelated-histories'],
+                cwd=str(app_path),
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            logger.info(f"Git pull result: {pull_result.returncode}")
+            if pull_result.stderr:
+                logger.info(f"Git pull stderr: {pull_result.stderr}")
         
         # Count training images
         image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])
@@ -629,7 +652,7 @@ def sync_training_data():
         }), 200
     
     except subprocess.TimeoutExpired:
-        logger.error("Git pull timeout - operation took too long")
+        logger.error("Git operation timeout - took too long")
         return jsonify({'error': 'Sync timeout - operation took too long'}), 504
     except Exception as e:
         logger.error(f"Error syncing from GitHub: {e}", exc_info=True)
