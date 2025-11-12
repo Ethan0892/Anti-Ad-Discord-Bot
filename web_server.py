@@ -600,7 +600,7 @@ def sync_training_data():
         logger.info("Starting GitHub sync for training data...")
         app_path = Path(__file__).parent
         
-        # First, try to fetch from remote to get latest Training-Data
+        # First, fetch from remote to get latest Training-Data
         fetch_result = subprocess.run(
             ['git', 'fetch', 'origin', 'main'],
             cwd=str(app_path),
@@ -613,32 +613,30 @@ def sync_training_data():
         if fetch_result.stderr:
             logger.info(f"Git fetch stderr: {fetch_result.stderr}")
         
-        # Then merge the fetched training data
-        merge_result = subprocess.run(
-            ['git', 'merge', 'origin/main', '--allow-unrelated-histories'],
+        # Clean untracked files (except our config) to allow merge
+        # This removes files that were COPY'd but not in the current origin/main
+        clean_result = subprocess.run(
+            ['git', 'clean', '-fd', 'Training-Data/', '--', '*.py', '*.html', 'requirements.txt'],
             cwd=str(app_path),
             capture_output=True,
             text=True,
             timeout=30
         )
         
-        logger.info(f"Git merge result: {merge_result.returncode}")
-        if merge_result.stderr:
-            logger.info(f"Git merge stderr: {merge_result.stderr}")
+        logger.info(f"Git clean result: {clean_result.returncode}")
         
-        # If both failed, try a simple pull
-        if fetch_result.returncode != 0 or merge_result.returncode != 0:
-            logger.warning("Fetch/merge failed, attempting git pull...")
-            pull_result = subprocess.run(
-                ['git', 'pull', 'origin', 'main', '--allow-unrelated-histories'],
-                cwd=str(app_path),
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            logger.info(f"Git pull result: {pull_result.returncode}")
-            if pull_result.stderr:
-                logger.info(f"Git pull stderr: {pull_result.stderr}")
+        # Checkout origin/main for Training-Data folder (force overwrite local)
+        checkout_result = subprocess.run(
+            ['git', 'checkout', 'origin/main', '--', 'Training-Data/'],
+            cwd=str(app_path),
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        logger.info(f"Git checkout result: {checkout_result.returncode}")
+        if checkout_result.stderr:
+            logger.info(f"Git checkout stderr: {checkout_result.stderr}")
         
         # Count training images
         image_count = len([f for f in TRAINING_DATA_PATH.glob('*') if f.is_file()])
