@@ -1,18 +1,36 @@
-# Anti-Ad Bot v2.0
+# 🛡️ Anti-Ad Bot v2.0
 
-**Discord Spam Image Detection Bot with Admin Portal**
+**Free, Open-Source Discord Moderation Bot with AI-Powered Spam Detection**
 
-A production-ready Discord bot that automatically detects and manages spam images using advanced computer vision (5-algorithm hybrid system), with a modern web interface for configuration and training data management.
+The most powerful free Discord moderation tool combining **advanced AI spam image detection** with **comprehensive moderation features** in a single, self-hosted bot. Perfect for server admins who want full control without paying for premium moderation bots.
+
+> **"Why switch bots later? Anti-Ad grows with your community." 🚀**
+
+### Why Choose Anti-Ad?
+
+| Feature | Anti-Ad | MEE6 | Maki | Dyno | Sapphire |
+|---------|---------|------|------|------|----------|
+| **Free** | ✅ Always | ❌ Premium only | ⚠️ Limited free | ⚠️ Limited free | ✅ |
+| **AI Spam Image Detection** | ✅⭐⭐⭐⭐⭐ | ❌ | ❌ | ❌ | ❌ |
+| **Self-Hosted** | ✅ | ❌ | ❌ | ❌ | ⚠️ Limited |
+| **Open Source** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Moderation Suite** | ✅ Growing | ✅ | ✅ | ✅ | ✅ |
+| **Appeal System** | ✅ | ❌ | ❌ | ⚠️ Basic | ✅ |
+| **Admin Portal** | ✅ | ✅ | ⚠️ Limited | ✅ | ⚠️ Limited |
+
+**Anti-Ad's Unique Advantage:** Only bot that automatically detects spam images using AI computer vision + traditional moderation features = complete solution.
 
 ---
 
 ## 📋 Table of Contents
 
 - [Quick Start](#quick-start) - **Start here! ⭐**
+- [Why Anti-Ad](#why-choose-anti-ad) - What makes it unique
+- [Features](#features) - Complete capability list
 - [Setup Methods](#setup-methods) - Choose your installation approach
 - [Configuration](#configuration) - Set up your Discord bot
 - [Admin Portal Guide](#admin-portal-guide) - Using the web interface
-- [Features](#features) - What the bot can do
+- [Roadmap](#roadmap--future-features) - Planned additions
 - [Troubleshooting](#troubleshooting) - Common issues & solutions
 - [Security](#security) - Before you go production
 - [Advanced](#advanced) - Production deployment
@@ -140,6 +158,42 @@ docker-compose down
 - ✅ Production-ready setup
 
 **See also:** [Docker Setup Guide](#docker-setup-guide) below for more options
+
+---
+
+## 🎯 Choosing the Right Moderation Bot
+
+Seeing this and thinking "Should I use Anti-Ad or [MEE6/Maki/Dyno/Sapphire]?" Here's the decision tree:
+
+### **Do you need AI spam image detection?**
+→ **YES? → Use Anti-Ad** ✅ (only bot that does this)  
+→ NO? → Continue below
+
+### **Do you want to self-host (own server)?**
+→ **YES? → Use Anti-Ad** ✅ (free, open source, full control)  
+→ NO? Continue below
+
+### **Do you want free or prefer paid premium?**
+→ **FREE? → Anti-Ad, Sapphire, or YAGPDB** ✅  
+→ PAID? → MEE6 Premium, Maki, or Dyno
+
+### **Do you want comprehensive features?**
+→ **All-in-one? → Anti-Ad's roadmap covers moderation + leveling + tickets**  
+→ Specialized? → Combine Anti-Ad with other bots
+
+### **Bottom Line:**
+
+| If You Want | Choose | Why |
+|------------|--------|-----|
+| **Simple, effective spam image detection** | Anti-Ad | Only bot with AI image detection |
+| **Self-hosted full control** | Anti-Ad | Open source, Docker ready |
+| **Avoid switching bots later** | Anti-Ad | Roadmap for moderation + leveling + more |
+| **Free with no switching hassle** | Anti-Ad | Grows with your community |
+| **Pay for premium features** | MEE6 | Mature platform, many integrations |
+| **Easiest setup experience** | Dyno | Very beginner-friendly |
+| **Most powerful/complex** | Sapphire | Advanced customization |
+
+**Anti-Ad's Promise:** Don't get choice anxiety. Start with Anti-Ad for image detection. As your server grows, we're adding leveling, tickets, analytics—everything you'd need. Never switch bots.
 
 ---
 
@@ -470,80 +524,136 @@ When an image is posted:
 
 ## Features
 
-### 🎯 Spam Detection
+### 🎯 AI Spam Detection (Unique Feature!)
 
-**Smart 5-Algorithm System**
-- SIFT (keypoint matching)
-- ORB (fast feature detection)  
-- Histogram (color patterns)
-- SSIM (visual similarity)
-- Template matching (exact correlation)
+**Smart 5-Algorithm System** - Most advanced spam image detection on Discord
+- **SIFT** - Robust keypoint matching for rotated/scaled images
+- **ORB** - Fast feature detection for real-time processing
+- **AKAZE** - Additional binary feature detection for robustness  
+- **Histogram** - Color pattern & tone matching
+- **SSIM** - Structural similarity for pixel-level comparison
+- **Template Matching** - Direct image correlation
 
-**Result:** ~95%+ accuracy on trained images with very few false positives
+**Result:** 95%+ accuracy on trained images with minimal false positives
 
-**Configurable Sensitivity**
-- Set your own detection threshold
-- Balance between catching spam and avoiding false alerts
+**Tuned Detection**
+- Default threshold: **0.65** (highly sensitive, catches near-identical spam)
+- Configurable 0.0-1.0 range for fine-tuning
 - Real-time adjustment in web interface
+- Per-image confidence scores logged
 
-### 🛡️ Automatic Punishments
+**What It Detects**
+- Exact spam image copies (different servers reuse the same ads)
+- Minor variations (slightly cropped, recolored, watermarked spam)
+- Screenshots of the same content
+- Rotated/scaled versions of known spam
 
-Choose what happens when spam is detected:
+### 🛡️ Complete Moderation Suite
 
-| Punishment | Effect | Use When |
-|-----------|--------|----------|
-| 🔇 **Mute** | User can't send messages | Want to review manually |
-| ⏱️ **Timeout** | Discord native timeout | Need temporary restriction |
-| 🚪 **Kick** | Remove from server | Serious repeat offender |
-| 🚫 **Ban** | Permanent ban | Persistent spammers |
+**Current Features:**
+- ✅ Configurable punishments (mute, timeout, kick, ban)
+- ✅ Progressive enforcement (escalate repeat offenders)
+- ✅ Appeal system with staff review workflow
+- ✅ Complete audit trail of all actions
+- ✅ Mute tracking & persistence
 
-**Progressive Enforcement**
-- Different actions for 1st, 2nd, 3rd offense
-- Automatically escalates repeat offenders
-- Set durations per punishment type
+**Planned (In Development):**
+- 🚧 Warning system with auto-actions
+- 🚧 Message spam detection (rapid message flooding)
+- 🚧 Manual moderation commands (mute/unmute/kick/ban)
+- 🚧 Improved modlog channel integration
+- 🚧 Basic leveling system
+- 🚧 Ticket system support
 
-### 💬 Appeal System
+**See:** [Feature Roadmap](FEATURE_ROADMAP.md) for complete planned features
 
-Users can appeal their mute/punishment:
-1. User posts appeal in designated channel
-2. Server staff reviews it
-3. Staff can unmute if appealing case
-4. Complete audit trail of all appeals
+### 💬 Appeal System (User-Friendly)
 
-### 📊 Admin Web Interface
+Users can contest their mute/punishment:
+1. User posts appeal in designated channel with reason
+2. Server staff reviews appeal with context
+3. Staff can unmute if warranted
+4. Complete appeal history visible to admins
+5. User notified of decision
 
-Professional dark-themed dashboard with:
-- ✅ Real-time bot status monitoring
+**Why This Matters:** Reduces user frustration with false positives
+
+### 📊 Admin Web Portal
+
+Professional dashboard with:
+- ✅ Real-time bot status & health monitoring
 - ✅ Drag & drop training image uploads
-- ✅ Live configuration editing
-- ✅ User management (if owner)
-- ✅ Secure authentication
+- ✅ Automatic GitHub sync for shared training data
+- ✅ Live configuration editing (no bot restart needed)
+- ✅ User account management
+- ✅ Secure role-based authentication (owner/dev/user)
 - ✅ Mobile responsive design
-- ✅ GitHub update checking and pulling
+- ✅ Detection threshold adjustments
+- ✅ Appeal management interface
 
-### 📝 Complete Logging
+**Accessible at:** `http://your-server:5000`
 
-Track everything that happens:
-- ✅ All spam detections
-- ✅ Punishments applied
-- ✅ User appeals
-- ✅ Configuration changes
-- ✅ All logs automatically rotated
+### 📝 Comprehensive Logging
 
-### 🚀 Cross-Platform
+Never miss an action:
+- ✅ All spam detections with confidence scores
+- ✅ Punishments applied with reasons
+- ✅ User appeals and staff decisions
+- ✅ Configuration changes with timestamps
+- ✅ Bot startup/shutdown events
+- ✅ Automatic log rotation to prevent disk bloat
 
-Works on:
-- ✅ Windows
-- ✅ Linux (Ubuntu, Debian)
-- ✅ macOS
-- ✅ Docker (all platforms)
+**Logs available in:**
+- Browser: Admin portal
+- Terminal: Real-time console output
+- Files: `logs/` directory (auto-archived)
 
-### 🐳 Docker Support
+### 🚀 Deployment Options
 
-- ✅ One-command deployment
-- ✅ Identical behavior across platforms
-- ✅ Easy updates and rollbacks
-- ✅ Production-ready setup
+**Docker (Recommended for Production)**
+- One-command deployment
+- Identical behavior across Windows/Mac/Linux
+- Persistent volumes for data
+- Easy updates with git sync
+- Production-grade security
+
+**Traditional (Windows/Linux)**
+- Direct Python execution
+- Full system control
+- Manual dependency management
+- Good for development
+
+**See:** [Setup Methods](#setup-methods) for detailed instructions
+
+---
+
+## Roadmap & Future Features
+
+Anti-Ad is actively developed with a clear vision:
+
+### Phase 1 (Next Priority)
+- [ ] Warning system with auto-escalation
+- [ ] Message flood detection (spam detection)
+- [ ] Profanity/slur filtering (configurable)
+- [ ] Mention spam protection
+
+### Phase 2 (Coming Soon)
+- [ ] Basic leveling system with XP
+- [ ] User leaderboards
+- [ ] Member profiles and stats
+- [ ] Welcome messages and autoroles
+
+### Phase 3 (Planned)
+- [ ] Ticket system support
+- [ ] Reaction role assignments
+- [ ] Server statistics & analytics
+- [ ] Modlog dashboard improvements
+
+### See Also
+📖 **[FEATURE_ROADMAP.md](FEATURE_ROADMAP.md)** - Detailed feature list, competitive analysis, and development roadmap
+
+**Why This Matters:**
+Anti-Ad is designed to **grow with your community**. You won't need to switch bots as your server expands. The roadmap shows we're building a comprehensive moderation platform, not just a niche tool.
 
 ---
 
@@ -568,18 +678,20 @@ pip install -r requirements.txt --upgrade
 3. Ensure port 5000 is available (no other apps using it)
 4. Check for error messages in terminal
 
-### Images Not Detected
+### Images Not Being Detected
 
 **Possible Causes:**
 1. Threshold too high
 2. Training images too different from spam
-3. Format not supported
+3. Image format not supported
+4. Bot doesn't have permissions in channel
 
 **Solutions:**
-- Lower threshold towards 0.5-0.7 (more detections)
-- Add more varied training examples
-- Ensure format is PNG, JPG, GIF, WEBP, or BMP
-- Verify files are in `Training-Data/` folder
+- Lower threshold to **0.65 or below** (more sensitive)
+- Add more varied training examples to Training-Data/
+- Verify format is PNG, JPG, GIF, WEBP, or BMP
+- Ensure bot has message management permissions
+- Check logs for detection errors: `docker-compose logs anti-ad-bot | grep -i detect`
 
 ### API Token Invalid
 
@@ -1054,6 +1166,113 @@ Copy: Training-Data/ folder
 ---
 
 **Ready to deploy!** Start with `START.bat` or one of the Quick Start methods above.
+
+---
+
+## 🏆 Detailed Bot Comparison
+
+### Anti-Ad vs. MEE6
+
+| Feature | Anti-Ad | MEE6 |
+|---------|---------|------|
+| **Cost** | Free forever | Free tier limited, Premium required |
+| **Image Detection** | ✅ AI-powered | ❌ Not available |
+| **Self-hosted** | ✅ Full control | ❌ Cloud only |
+| **Open Source** | ✅ GitHub | ❌ Proprietary |
+| **Moderation** | ✅ Growing | ✅ Mature |
+| **Leveling** | 🚧 Coming | ✅ |
+| **Support** | Community/GitHub | Email support |
+| **Setup Difficulty** | Easy | Very Easy |
+| **Customization** | High | Medium |
+
+**Best for MEE6:** Users who want a fully hosted solution and don't need image detection  
+**Choose Anti-Ad if:** You want image spam detection + self-hosted + free forever
+
+---
+
+### Anti-Ad vs. Maki
+
+| Feature | Anti-Ad | Maki |
+|---------|---------|------|
+| **Cost** | Free | Limited free tier |
+| **Image Detection** | ✅ AI-powered | ❌ |
+| **Leveling** | 🚧 Coming | ✅ |
+| **Tickets** | 🚧 Coming | ✅ |
+| **Self-hosted** | ✅ | ❌ |
+| **Appeal System** | ✅ | ❌ |
+| **Moderation** | ✅ Growing | ✅ |
+
+**Best for Maki:** Servers that need leveling/tickets and want hosted solution  
+**Choose Anti-Ad if:** You need image detection + want to self-host
+
+---
+
+### Anti-Ad vs. Dyno
+
+| Feature | Anti-Ad | Dyno |
+|---------|---------|------|
+| **Cost** | Free | Limited free tier |
+| **Image Detection** | ✅ AI-powered | ❌ |
+| **Ease of Use** | Easy | Very Easy |
+| **Moderation** | ✅ | ✅ Mature |
+| **Custom Commands** | ❌ (yet) | ✅ |
+| **Self-hosted** | ✅ | ❌ |
+| **Support Quality** | Community | Excellent |
+
+**Best for Dyno:** First-time Discord admins, prefer hosted solutions  
+**Choose Anti-Ad if:** You want AI features + technical control
+
+---
+
+### Anti-Ad vs. Sapphire
+
+| Feature | Anti-Ad | Sapphire |
+|---------|---------|------|
+| **Cost** | Free | Free |
+| **Image Detection** | ✅ AI-powered | ❌ |
+| **Power/Customization** | Medium | Very High |
+| **Learning Curve** | Easy | Steep |
+| **Self-hosted** | ✅ | Limited |
+| **Appeal System** | ✅ | ✅ |
+| **Community** | Growing | Large |
+
+**Best for Sapphire:** Advanced users who want maximum customization  
+**Choose Anti-Ad if:** You want simplicity + image detection
+
+---
+
+### Anti-Ad vs. YAGPDB (Yet Another General Purpose Discord Bot)
+
+| Feature | Anti-Ad | YAGPDB |
+|---------|---------|--------|
+| **Cost** | Free | Free |
+| **Image Detection** | ✅ AI-powered | ❌ |
+| **Customization** | Medium | High |
+| **Self-hosted** | ✅ Easy | Limited |
+| **Learning Curve** | Easy | Medium |
+| **Active Development** | ✅ | Active |
+
+**Best for YAGPDB:** Complex server customization needs  
+**Choose Anti-Ad if:** You want specialized image detection + moderation combo
+
+---
+
+## Summary: Why Anti-Ad Is Right for You
+
+**Choose Anti-Ad if you:**
+- ✅ Want to prevent spam image networks (ads, NFT scams, ICO promotions)
+- ✅ Prefer self-hosted with full control
+- ✅ Don't want to pay subscription fees
+- ✅ Want a bot that grows with your server
+- ✅ Like open source and community involvement
+- ✅ Need an appeal system for user disputes
+- ✅ Have technical ability or willingness to learn Docker
+
+**Choose a different bot if you:**
+- ❌ Want zero technical setup (cloud-only solutions)
+- ❌ Only need leveling/tickets (other bots specialize better)
+- ❌ Prefer vendor support over community
+- ❌ Don't have spam image problems
 
 ---
 
