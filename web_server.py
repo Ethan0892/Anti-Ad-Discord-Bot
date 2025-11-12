@@ -208,7 +208,7 @@ def dashboard():
         if f.is_file() and allowed_file(f.name)
     ]) if TRAINING_DATA_PATH.exists() else []
     
-    return render_template('dashboard.html', 
+    return render_template('index.html', 
                          username=session['username'],
                          role=session.get('role'),
                          training_images=training_images,
