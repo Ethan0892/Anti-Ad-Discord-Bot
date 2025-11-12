@@ -398,6 +398,60 @@
             background: rgba(15, 23, 42, 0.35);
         }
 
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            min-height: 160px;
+        }
+
+        .metric-card label {
+            display: block;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
+
+        .metric-list li {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-list li:last-child {
+            border-bottom: none;
+        }
+
+        .metric-list .count {
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            min-width: 30px;
+            text-align: center;
+        }
+
         .btn-outline:hover {
             border-color: rgba(59, 130, 246, 0.55);
             color: var(--text-soft);
@@ -1101,6 +1155,42 @@
             </div>
         </section>
 
+        <section class="panel" id="metricsSection">
+            <div class="panel-header">
+                <h2>Detection Metrics</h2>
+                <div class="panel-actions">
+                    <select id="metricsGuildSelect" class="select-sm">
+                        <option value="">Global Stats</option>
+                    </select>
+                    <button class="btn-outline" id="refreshMetricsBtn" type="button">Refresh</button>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <label>Top Offenders (7d)</label>
+                    <ul id="topOffendersList" class="metric-list">
+                        <li class="hint">Loading...</li>
+                    </ul>
+                </div>
+                <div class="metric-card">
+                    <label>Triggered Images (7d)</label>
+                    <ul id="topImagesList" class="metric-list">
+                        <li class="hint">Loading...</li>
+                    </ul>
+                </div>
+                <div class="metric-card">
+                    <label>Detection Methods</label>
+                    <ul id="methodsList" class="metric-list">
+                        <li class="hint">Loading...</li>
+                    </ul>
+                </div>
+                <div class="metric-card">
+                    <label>Detection Timeline (7d)</label>
+                    <canvas id="detectionTimelineChart" height="120"></canvas>
+                </div>
+            </div>
+        </section>
+
         <section class="panel" id="logsSection">
             <div class="panel-header">
                 <h2>Recent Activity</h2>
@@ -1160,6 +1250,7 @@
         };
 
         let channelChart = null;
+        let detectionTimelineChart = null;
 
         const $ = (id) => document.getElementById(id);
 
@@ -1230,8 +1321,37 @@
             applyRoleRestrictions();
             await loadConfig();
             await refreshDashboard();
+            await populateMetricsGuildSelect();
+            await loadMetrics();
             setInterval(checkStatus, 30000);
             setInterval(fetchSystemInfo, 60000);
+            setInterval(loadMetrics, 300000);  // Refresh metrics every 5 minutes
+        }
+
+        async function populateMetricsGuildSelect() {
+            const select = $('metricsGuildSelect');
+            if (!select || !HAS_ADMIN_ACCESS) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings`, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                const servers = data.servers || [];
+                if (servers.length) {
+                    servers.forEach(server => {
+                        const option = document.createElement('option');
+                        option.value = server.guild_id;
+                        option.textContent = server.display_name || `Guild ${server.guild_id}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error populating metrics guild select:', error);
+            }
         }
 
         function bindEvents() {
@@ -1319,6 +1439,8 @@
             $('addWhitelistBtn')?.addEventListener('click', whitelistChannel);
             $('addBlacklistBtn')?.addEventListener('click', blacklistChannel);
             $('refreshLogsBtn')?.addEventListener('click', loadLogs);
+            $('refreshMetricsBtn')?.addEventListener('click', loadMetrics);
+            $('metricsGuildSelect')?.addEventListener('change', loadMetrics);
 
             $('manualGuildForm')?.addEventListener('submit', (event) => {
                 event.preventDefault();
@@ -2244,6 +2366,134 @@
                 viewer.textContent = state.logs.length ? state.logs.join('\n') : 'No recent log entries.';
             } catch (error) {
                 viewer.textContent = `Log fetch error: ${error.message}`;
+            }
+        }
+
+        async function loadMetrics() {
+            if (!HAS_ADMIN_ACCESS) return;
+
+            const guildId = $('metricsGuildSelect')?.value;
+            try {
+                const endpoint = guildId && guildId !== '' 
+                    ? `${API_BASE}/detections/guild/${guildId}?days=7`
+                    : `${API_BASE}/detections/stats?days=7`;
+                
+                const response = await fetch(endpoint, {
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                renderMetrics(data);
+                renderDetectionTimeline(data.by_day || {});
+            } catch (error) {
+                console.error('Metrics load error:', error);
+            }
+        }
+
+        function renderMetrics(data) {
+            // Render top offenders
+            const offendersList = $('topOffendersList');
+            if (offendersList) {
+                const offenders = data.top_offenders || [];
+                if (offenders.length) {
+                    offendersList.innerHTML = offenders.map(o => `
+                        <li>
+                            <span>${o.username || 'Unknown'}</span>
+                            <span class="count">${o.count}</span>
+                        </li>
+                    `).join('');
+                } else {
+                    offendersList.innerHTML = '<li class="hint">No detections yet.</li>';
+                }
+            }
+
+            // Render top images
+            const imagesList = $('topImagesList');
+            if (imagesList) {
+                const images = data.top_images || [];
+                if (images.length) {
+                    imagesList.innerHTML = images.map(i => `
+                        <li>
+                            <span>${i.image || 'unknown'}</span>
+                            <span class="count">${i.count}</span>
+                        </li>
+                    `).join('');
+                } else {
+                    imagesList.innerHTML = '<li class="hint">No images triggered.</li>';
+                }
+            }
+
+            // Render detection methods
+            const methodsList = $('methodsList');
+            if (methodsList) {
+                const methods = data.methods_used || {};
+                const entries = Object.entries(methods);
+                if (entries.length) {
+                    methodsList.innerHTML = entries.map(([method, count]) => `
+                        <li>
+                            <span>${method}</span>
+                            <span class="count">${count}</span>
+                        </li>
+                    `).join('');
+                } else {
+                    methodsList.innerHTML = '<li class="hint">No detection methods.</li>';
+                }
+            }
+        }
+
+        function renderDetectionTimeline(byDay) {
+            const canvas = $('detectionTimelineChart');
+            if (!canvas) return;
+
+            const days = Object.keys(byDay).sort();
+            const counts = days.map(day => byDay[day]);
+            const labels = days.map(day => {
+                const d = new Date(day + 'T00:00:00Z');
+                return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+
+            if (detectionTimelineChart) {
+                detectionTimelineChart.data.labels = labels;
+                detectionTimelineChart.data.datasets[0].data = counts;
+                detectionTimelineChart.update();
+            } else {
+                detectionTimelineChart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Detections',
+                            data: counts,
+                            borderColor: 'rgba(59, 130, 246, 0.8)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 0.8)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, labels: { color: '#cbd5f5' } }
+                        },
+                        scales: {
+                            y: {
+                                ticks: { color: '#cbd5f5', precision: 0 },
+                                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                            },
+                            x: {
+                                ticks: { color: '#cbd5f5' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
             }
         }
 

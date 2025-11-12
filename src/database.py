@@ -145,8 +145,17 @@ class Database:
                              confidence: float,
                              source: str,
                              message_id: Optional[int] = None,
-                             action: str = 'muted') -> None:
-        """Append a detection event to the database for portal analytics."""
+                             action: str = 'muted',
+                             detection_method: str = 'hybrid',
+                             threshold_applied: float = None,
+                             offense_count: int = 1) -> None:
+        """Append a detection event to the database for portal analytics.
+        
+        Args:
+            detection_method: 'phash', 'histogram', 'template', 'structural', 'hybrid'
+            threshold_applied: per-guild similarity threshold that triggered the detection
+            offense_count: cumulative offense number for this user in this guild
+        """
         event = {
             'timestamp': datetime.utcnow().isoformat(),
             'guild_id': guild_id,
@@ -157,7 +166,10 @@ class Database:
             'confidence': confidence,
             'source': source,  # attachment | url
             'message_id': message_id,
-            'action': action
+            'action': action,
+            'detection_method': detection_method,
+            'threshold_applied': threshold_applied or 0.65,
+            'offense_count': offense_count
         }
         # Ensure list exists even if older data.json is missing the key
         self.data.setdefault('detections', [])
@@ -217,6 +229,82 @@ class Database:
             'by_day': by_day,
             'last_detection_at': last_at.isoformat() if last_at else None
         }
+
+    def get_guild_detection_stats(self, guild_id: int, days: int = 7) -> Dict:
+        """Return per-guild detection analytics: timeline, top offenders, top images, methods used."""
+        from datetime import timedelta
+        from collections import defaultdict
+        
+        guild_id_int = int(guild_id)
+        det = [d for d in self.data.get('detections', []) if d.get('guild_id') == guild_id_int]
+        
+        now = datetime.utcnow()
+        start = now - timedelta(days=days - 1)
+        
+        by_day: Dict[str, int] = {}
+        for i in range(days):
+            day = (start + timedelta(days=i)).date().isoformat()
+            by_day[day] = 0
+        
+        top_offenders: Dict[str, Dict] = defaultdict(lambda: {'user_id': None, 'count': 0, 'last_offense': None})
+        top_images: Dict[str, int] = defaultdict(int)
+        methods_used: Dict[str, int] = defaultdict(int)
+        
+        last_at = None
+        for e in det:
+            ts_str = e.get('timestamp')
+            if not ts_str:
+                continue
+            try:
+                ts = datetime.fromisoformat(ts_str)
+            except Exception:
+                continue
+            
+            day_key = ts.date().isoformat()
+            if day_key in by_day:
+                by_day[day_key] += 1
+            
+            # Track offenders
+            username = e.get('username', 'Unknown')
+            top_offenders[username]['user_id'] = e.get('user_id')
+            top_offenders[username]['count'] += 1
+            top_offenders[username]['last_offense'] = ts.isoformat()
+            
+            # Track images
+            img = e.get('matched_image', 'unknown')
+            top_images[img] += 1
+            
+            # Track methods
+            method = e.get('detection_method', 'hybrid')
+            methods_used[method] += 1
+            
+            if not last_at or ts > last_at:
+                last_at = ts
+        
+        # Sort and limit results
+        top_off_list = sorted(
+            [{'username': u, **v} for u, v in top_offenders.items()],
+            key=lambda x: x['count'],
+            reverse=True
+        )[:10]
+        
+        top_img_list = sorted(
+            [{'image': img, 'count': cnt} for img, cnt in top_images.items()],
+            key=lambda x: x['count'],
+            reverse=True
+        )[:10]
+        
+        return {
+            'guild_id': guild_id,
+            'total': len(det),
+            'days': days,
+            'by_day': by_day,
+            'last_detection_at': last_at.isoformat() if last_at else None,
+            'top_offenders': top_off_list,
+            'top_images': top_img_list,
+            'methods_used': dict(methods_used)
+        }
+
     
     def get_server_settings(self, guild_id: int) -> Dict:
         """Get server settings for a guild. Returns defaults if not found."""
@@ -235,6 +323,9 @@ class Database:
                 'whitelisted_channels': [],
                 'blacklisted_channels': [],
                 'notification_cooldown_minutes': 5,
+                'auto_mute_after_n_detections': None,  # Escalate after N detections per user
+                'notification_mode': 'standard',  # 'standard' | 'verbose' | 'silent'
+                'whitelist_only_mode': False,  # If True, only scan whitelisted channels
                 'updated_at': datetime.utcnow().isoformat()
             }
             self.save()

@@ -964,6 +964,20 @@ def api_detection_stats():
         logger.error(f"Error building detection stats: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/detections/guild/<int:guild_id>', methods=['GET'])
+@login_required
+def api_guild_detection_stats(guild_id):
+    """Return per-guild detection analytics: timeline, top offenders, top images, methods."""
+    days = request.args.get('days', default=7, type=int)
+    try:
+        from src.database import Database
+        db = Database()
+        stats = db.get_guild_detection_stats(guild_id, days=max(1, min(days, 31)))
+        return jsonify(stats), 200
+    except Exception as e:
+        logger.error(f"Error building guild detection stats for {guild_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
