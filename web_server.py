@@ -316,14 +316,27 @@ def delete_image(filename):
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Get bot status"""
+    """Get bot status derived from recent log activity and training set size."""
     training_count = len([
         f for f in TRAINING_DATA_PATH.iterdir() 
         if f.is_file() and allowed_file(f.name)
     ]) if TRAINING_DATA_PATH.exists() else 0
-    
+
+    status = 'online'
+    log_file = ROOT_PATH / 'bot.log'
+    try:
+        if log_file.exists():
+            mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
+            # Consider offline if no log activity in the last 10 minutes
+            if (datetime.now() - mtime).total_seconds() > 600:
+                status = 'inactive'
+        else:
+            status = 'unknown'
+    except Exception:
+        status = 'unknown'
+
     return jsonify({
-        'status': 'online',
+        'status': status,
         'training_images': training_count,
         'timestamp': datetime.now().isoformat()
     }), 200
@@ -649,6 +662,7 @@ def get_system_info():
         from src.database import Database
         db = Database()
         servers = db.data.get('server_settings', {})
+        detections = db.data.get('detections', [])
 
         latest_update = None
         for raw in servers.values():
@@ -662,6 +676,17 @@ def get_system_info():
             if not latest_update or candidate > latest_update:
                 latest_update = candidate
 
+        # Simple detection aggregates
+        last_detection = None
+        if detections:
+            try:
+                last_detection = max(
+                    (datetime.fromisoformat(d.get('timestamp')) for d in detections if d.get('timestamp')),
+                    default=None
+                )
+            except Exception:
+                last_detection = None
+
         response = {
             'status': 'online',
             'training_images': training_count,
@@ -669,6 +694,8 @@ def get_system_info():
             'latest_server_update': latest_update.isoformat() if latest_update else None,
             'uptime_seconds': int(time.time() - APP_START_TIME),
             'portal_version': '2.2.0',
+            'detections_total': len(detections),
+            'last_detection_at': last_detection.isoformat() if last_detection else None,
             'user': {
                 'username': session.get('username'),
                 'role': session.get('role')
@@ -898,6 +925,43 @@ def recent_logs():
         return jsonify({'entries': entries}), 200
     except Exception as e:
         logger.error(f"Error reading logs: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ============ Detection analytics ============
+
+@app.route('/api/detections/recent', methods=['GET'])
+@dev_or_owner_required
+def api_recent_detections():
+    """Return recent detection events for portal display (admin only)."""
+    limit = request.args.get('limit', default=50, type=int)
+    try:
+        from src.database import Database
+        db = Database()
+        events = db.get_recent_detections(limit=limit)
+        return jsonify({'events': events}), 200
+    except Exception as e:
+        logger.error(f"Error fetching recent detections: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/detections/stats', methods=['GET'])
+@login_required
+def api_detection_stats():
+    """Return detection aggregate stats for dashboard widgets."""
+    days = request.args.get('days', default=7, type=int)
+    try:
+        from src.database import Database
+        db = Database()
+        stats = db.get_detection_stats(days=max(1, min(days, 31)))
+        # Compute today's count quickly
+        today = datetime.utcnow().date().isoformat()
+        detections_today = stats['by_day'].get(today, 0)
+        payload = {
+            **stats,
+            'detections_today': detections_today
+        }
+        return jsonify(payload), 200
+    except Exception as e:
+        logger.error(f"Error building detection stats: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.errorhandler(404)

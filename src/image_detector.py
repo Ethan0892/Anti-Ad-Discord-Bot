@@ -38,9 +38,9 @@ class ImageDetector:
         FLANN_INDEX_KDTREE = 1
         self.flann = cv2.FlannBasedMatcher({'algorithm': FLANN_INDEX_KDTREE, 'trees': 5}, {})
         
-        # Cache for recent detections
+        # Cache for recent detections: map image_md5 -> (is_similar, confidence, matched_image, timestamp)
         self.detection_cache: Dict[str, Tuple[bool, float, str, float]] = {}
-        self.cache_timeout = 3600  # 1 hour
+        self.cache_timeout = 3600  # seconds
         
         # Performance tracking
         self.detection_times = []
@@ -380,7 +380,7 @@ class ImageDetector:
             logger.error(f"Error computing structural similarity: {e}")
             return 0.0
     
-    async def detect_similar_image(self, image_bytes: bytes) -> Tuple[bool, float, str]:
+    async def detect_similar_image(self, image_bytes: bytes, threshold: float = None) -> Tuple[bool, float, str]:
         """
         Detect if an image is similar to any training images.
         
@@ -396,10 +396,11 @@ class ImageDetector:
         # Check cache
         image_hash = hashlib.md5(image_bytes).hexdigest()
         if image_hash in self.detection_cache:
-            cached_result, cache_time = self.detection_cache[image_hash], datetime.now()
-            if (cache_time - cache_time).total_seconds() < self.cache_timeout:
+            cached_is_sim, cached_conf, cached_match, cached_ts = self.detection_cache[image_hash]
+            # cached_ts stored as epoch seconds float
+            if (datetime.now().timestamp() - cached_ts) < self.cache_timeout:
                 logger.debug(f"Cache hit for image hash {image_hash}")
-                return cached_result[0], cached_result[1], cached_result[2]
+                return cached_is_sim, cached_conf, cached_match
         
         try:
             # Load the image from bytes
@@ -508,7 +509,8 @@ class ImageDetector:
                     max_similarity = combined_similarity
                     matched_image = Path(train_img['path']).name
             
-            is_similar = max_similarity >= self.similarity_threshold
+            th = self.similarity_threshold if threshold is None else float(threshold)
+            is_similar = max_similarity >= th
             
             # Track detection time
             detection_time = (datetime.now() - start_time).total_seconds()
@@ -522,9 +524,8 @@ class ImageDetector:
                 f"time={detection_time:.2f}s"
             )
             
-            # Cache result
-            result = (is_similar, max_similarity, matched_image)
-            self.detection_cache[image_hash] = result
+            # Cache result with timestamp
+            self.detection_cache[image_hash] = (is_similar, max_similarity, matched_image, datetime.now().timestamp())
             
             return is_similar, max_similarity, matched_image
             

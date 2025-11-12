@@ -15,7 +15,8 @@ class Database:
         self.data = {
             'muted_users': {},
             'appeals': [],
-            'server_settings': {}
+            'server_settings': {},
+            'detections': []  # list of detection event dicts
         }
         self.load()
     
@@ -132,6 +133,90 @@ class Database:
     def get_all_muted_users(self) -> List[Dict]:
         """Get all muted users."""
         return list(self.data['muted_users'].values())
+
+    # ---------------- Detection events -----------------
+
+    def add_detection_event(self,
+                             guild_id: int,
+                             channel_id: int,
+                             user_id: int,
+                             username: str,
+                             matched_image: str,
+                             confidence: float,
+                             source: str,
+                             message_id: Optional[int] = None,
+                             action: str = 'muted') -> None:
+        """Append a detection event to the database for portal analytics."""
+        event = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'guild_id': guild_id,
+            'channel_id': channel_id,
+            'user_id': user_id,
+            'username': username,
+            'matched_image': matched_image,
+            'confidence': confidence,
+            'source': source,  # attachment | url
+            'message_id': message_id,
+            'action': action
+        }
+        # Ensure list exists even if older data.json is missing the key
+        self.data.setdefault('detections', [])
+        self.data['detections'].append(event)
+        # Keep only recent N events to prevent unbounded growth
+        if len(self.data['detections']) > 5000:
+            self.data['detections'] = self.data['detections'][-5000:]
+        self.save()
+        logger.debug(f"Recorded detection event for user_id={user_id} in guild_id={guild_id}")
+
+    def get_recent_detections(self, limit: int = 50) -> List[Dict]:
+        """Return most recent detection events (newest first)."""
+        det = self.data.get('detections', [])
+        # Sort by timestamp descending safely
+        try:
+            det_sorted = sorted(
+                det,
+                key=lambda e: e.get('timestamp') or '',
+                reverse=True
+            )
+        except Exception:
+            det_sorted = det[::-1]
+        return det_sorted[:max(1, min(limit, 500))]
+
+    def get_detection_stats(self, days: int = 7) -> Dict:
+        """Return simple stats: total count, counts per day for last N days, last_detection_at."""
+        from datetime import timedelta
+        det = self.data.get('detections', [])
+        now = datetime.utcnow()
+        start = now - timedelta(days=days - 1)
+
+        # Initialize day buckets
+        by_day: Dict[str, int] = {}
+        for i in range(days):
+            day = (start + timedelta(days=i)).date().isoformat()
+            by_day[day] = 0
+
+        last_at = None
+        for e in det:
+            ts_str = e.get('timestamp')
+            if not ts_str:
+                continue
+            try:
+                ts = datetime.fromisoformat(ts_str)
+            except Exception:
+                continue
+            day_key = ts.date().isoformat()
+            if day_key in by_day:
+                by_day[day_key] += 1
+            if not last_at or ts > last_at:
+                last_at = ts
+
+        total = len(det)
+        return {
+            'total': total,
+            'days': days,
+            'by_day': by_day,
+            'last_detection_at': last_at.isoformat() if last_at else None
+        }
     
     def get_server_settings(self, guild_id: int) -> Dict:
         """Get server settings for a guild. Returns defaults if not found."""

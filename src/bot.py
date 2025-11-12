@@ -195,6 +195,31 @@ async def on_message(message: discord.Message):
     # Process commands first
     await bot.process_commands(message)
     
+    # Load server settings and apply gating
+    try:
+        settings = db.get_server_settings(message.guild.id)
+    except Exception:
+        settings = {
+            'enabled': True,
+            'whitelisted_channels': [],
+            'blacklisted_channels': [],
+            'similarity_threshold': config.SIMILARITY_THRESHOLD
+        }
+
+    if not settings.get('enabled', True):
+        return
+
+    # Respect channel whitelist/blacklist
+    channel_id = message.channel.id
+    wl = set(settings.get('whitelisted_channels') or [])
+    bl = set(settings.get('blacklisted_channels') or [])
+    # If channel is explicitly whitelisted, skip scanning
+    if channel_id in wl:
+        return
+    # If blacklist is configured and channel is not in it, skip scanning
+    if bl and channel_id not in bl:
+        return
+
     # Check if message has attachments
     has_attachments = len(message.attachments) > 0
     
@@ -224,8 +249,9 @@ async def on_message(message: discord.Message):
                             logger.warning(f"Failed to download image: HTTP {resp.status}")
                             continue
                 
-                # Detect if image is similar to training data
-                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes)
+                # Detect if image is similar to training data (use per-guild threshold)
+                threshold = float(settings.get('similarity_threshold', config.SIMILARITY_THRESHOLD))
+                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes, threshold)
                 
                 if is_similar:
                     logger.warning(
@@ -243,6 +269,21 @@ async def on_message(message: discord.Message):
                         f"Posting spam/advertisement image (matched: {matched_image}, confidence: {confidence:.2%})"
                     )
                     
+                    # Record event and log to log channel
+                    try:
+                        db.add_detection_event(
+                            guild_id=message.guild.id,
+                            channel_id=message.channel.id,
+                            user_id=message.author.id,
+                            username=str(message.author),
+                            matched_image=matched_image,
+                            confidence=confidence,
+                            source='attachment',
+                            message_id=message.id,
+                            action='muted'
+                        )
+                    except Exception as e:
+                        logger.error(f"Error recording detection event: {e}")
                     # Log to log channel
                     await log_detection(message, matched_image, confidence)
                     
@@ -278,8 +319,9 @@ async def on_message(message: discord.Message):
                             logger.warning(f"Failed to download URL image: HTTP {resp.status}")
                             continue
                 
-                # Detect if image is similar to training data
-                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes)
+                # Detect if image is similar to training data (use per-guild threshold)
+                threshold = float(settings.get('similarity_threshold', config.SIMILARITY_THRESHOLD))
+                is_similar, confidence, matched_image = await detector.detect_similar_image(image_bytes, threshold)
                 
                 if is_similar:
                     logger.warning(
@@ -297,6 +339,21 @@ async def on_message(message: discord.Message):
                         f"Posting spam/advertisement image via URL (matched: {matched_image}, confidence: {confidence:.2%})"
                     )
                     
+                    # Record event and log to log channel
+                    try:
+                        db.add_detection_event(
+                            guild_id=message.guild.id,
+                            channel_id=message.channel.id,
+                            user_id=message.author.id,
+                            username=str(message.author),
+                            matched_image=matched_image,
+                            confidence=confidence,
+                            source='url',
+                            message_id=message.id,
+                            action='muted'
+                        )
+                    except Exception as e:
+                        logger.error(f"Error recording detection event: {e}")
                     # Log to log channel
                     await log_detection(message, matched_image, confidence)
                     

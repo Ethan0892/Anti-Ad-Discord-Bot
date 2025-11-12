@@ -851,6 +851,16 @@
                 <div class="stat-value" id="statUptime">--</div>
                 <div class="stat-meta">Since last restart</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-label">Detections Today</div>
+                <div class="stat-value" id="statDetectionsToday">0</div>
+                <div class="stat-meta">Across all servers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Last Detection</div>
+                <div class="stat-value" id="statLastDetection">--</div>
+                <div class="stat-meta">Most recent event</div>
+            </div>
         </section>
 
         <section class="panel">
@@ -1342,6 +1352,7 @@
             ]);
             await fetchServerList();
             await checkStatus();
+            await fetchDetectionStats();
         }
 
         async function handleFiles(fileList) {
@@ -1582,19 +1593,37 @@
                 $('statImages').textContent = info.training_images ?? state.images.length;
                 $('statServers').textContent = info.servers_managed ?? 0;
                 $('statUptime').textContent = formatDuration(info.uptime_seconds);
+                if (info.last_detection_at) {
+                    const dt = new Date(info.last_detection_at);
+                    $('statLastDetection').textContent = dt.toLocaleTimeString();
+                } else {
+                    $('statLastDetection').textContent = '--';
+                }
+                // Fetch detection stats for today count
+                fetchDetectionStats();
             } catch (error) {
                 $('statUptime').textContent = '--';
+            }
+        }
+
+        async function fetchDetectionStats() {
+            try {
+                const resp = await fetch(`${API_BASE}/detections/stats?days=7`);
+                if (!resp.ok) return;
+                const stats = await resp.json();
+                $('statDetectionsToday').textContent = stats.detections_today ?? 0;
+            } catch (e) {
+                $('statDetectionsToday').textContent = '0';
             }
         }
 
         async function checkStatus() {
             try {
                 const response = await fetch(`${API_BASE}/status`);
-                if (response.ok) {
-                    updateStatusCard('Online', true);
-                } else {
-                    updateStatusCard('Offline', false);
-                }
+                if (!response.ok) throw new Error('status error');
+                const data = await response.json();
+                const isOnline = (data.status || '').toLowerCase() === 'online';
+                updateStatusCard(isOnline ? 'Online' : (data.status || 'Unknown'), isOnline);
             } catch (error) {
                 updateStatusCard('Offline', false);
             }
