@@ -117,6 +117,8 @@ class SpamNotificationTracker:
         return False
 
 notification_tracker = SpamNotificationTracker(cooldown_minutes=5)
+
+@tasks.loop(hours=1)
 async def cleanup_cache():
     """Periodically clean up detection cache."""
     try:

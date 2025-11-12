@@ -22,14 +22,25 @@ class Database:
     def load(self):
         """Load database from file."""
         if os.path.exists(self.db_file):
-            try:
-                with open(self.db_file, 'r', encoding='utf-8') as f:
-                    self.data = json.load(f)
-                logger.info(f"Database loaded from {self.db_file}")
-            except Exception as e:
-                logger.error(f"Error loading database: {e}")
-        else:
-            logger.info("No existing database found, starting fresh")
+            # Check if it's a file (not a directory)
+            if os.path.isdir(self.db_file):
+                logger.warning(f"{self.db_file} is a directory, removing it and starting fresh")
+                try:
+                    import shutil
+                    shutil.rmtree(self.db_file)
+                except Exception as e:
+                    logger.error(f"Error removing directory {self.db_file}: {e}")
+                    return
+            elif os.path.isfile(self.db_file):
+                try:
+                    with open(self.db_file, 'r', encoding='utf-8') as f:
+                        self.data = json.load(f)
+                    logger.info(f"Database loaded from {self.db_file}")
+                    return
+                except Exception as e:
+                    logger.error(f"Error loading database: {e}")
+        
+        logger.info("No existing database found, starting fresh")
     
     def save(self):
         """Save database to file."""
