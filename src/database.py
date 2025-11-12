@@ -14,7 +14,8 @@ class Database:
         self.db_file = db_file
         self.data = {
             'muted_users': {},
-            'appeals': []
+            'appeals': [],
+            'server_settings': {}
         }
         self.load()
     
@@ -110,3 +111,43 @@ class Database:
     def get_all_muted_users(self) -> List[Dict]:
         """Get all muted users."""
         return list(self.data['muted_users'].values())
+    
+    def get_server_settings(self, guild_id: int) -> Dict:
+        """Get server settings for a guild. Returns defaults if not found."""
+        guild_id_str = str(guild_id)
+        if guild_id_str not in self.data['server_settings']:
+            # Return default settings
+            self.data['server_settings'][guild_id_str] = {
+                'guild_id': guild_id,
+                'enabled': True,
+                'similarity_threshold': 0.65,
+                'auto_delete_images': True,
+                'send_global_notification': True,
+                'mute_duration_days': 7,
+                'notify_channel_id': None,
+                'whitelisted_channels': [],
+                'blacklisted_channels': [],
+                'notification_cooldown_minutes': 5
+            }
+            self.save()
+        return self.data['server_settings'][guild_id_str]
+    
+    def update_server_settings(self, guild_id: int, settings: Dict) -> Dict:
+        """Update server settings for a guild."""
+        guild_id_str = str(guild_id)
+        current_settings = self.get_server_settings(guild_id)
+        current_settings.update(settings)
+        self.data['server_settings'][guild_id_str] = current_settings
+        self.save()
+        logger.info(f"Updated server settings for guild {guild_id}")
+        return current_settings
+    
+    def is_channel_whitelisted(self, guild_id: int, channel_id: int) -> bool:
+        """Check if a channel is whitelisted (bot won't scan there)."""
+        settings = self.get_server_settings(guild_id)
+        return channel_id in settings['whitelisted_channels']
+    
+    def is_channel_blacklisted(self, guild_id: int, channel_id: int) -> bool:
+        """Check if a channel is blacklisted (bot will only scan there if set)."""
+        settings = self.get_server_settings(guild_id)
+        return channel_id in settings['blacklisted_channels']

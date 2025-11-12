@@ -664,6 +664,103 @@ def restart_services():
         logger.error(f"Error restarting services: {e}", exc_info=True)
         return jsonify({'error': f'Restart failed: {str(e)}'}), 500
 
+# Server Settings Endpoints
+@app.route('/api/server-settings/<int:guild_id>', methods=['GET'])
+@login_required
+def get_server_settings(guild_id):
+    """Get server-specific settings"""
+    try:
+        from src.database import Database
+        db = Database()
+        settings = db.get_server_settings(guild_id)
+        return jsonify(settings), 200
+    except Exception as e:
+        logger.error(f"Error getting server settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings/<int:guild_id>', methods=['PUT'])
+@dev_or_owner_required
+def update_server_settings(guild_id):
+    """Update server-specific settings"""
+    try:
+        from src.database import Database
+        db = Database()
+        data = request.get_json()
+        
+        settings = db.update_server_settings(guild_id, data)
+        logger.info(f"Server settings updated for guild {guild_id} by {session.get('username')}")
+        
+        return jsonify({
+            'success': True,
+            'settings': settings,
+            'message': 'Server settings updated successfully'
+        }), 200
+    except Exception as e:
+        logger.error(f"Error updating server settings: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings/<int:guild_id>/notification-channel/<int:channel_id>', methods=['PUT'])
+@dev_or_owner_required
+def set_notification_channel(guild_id, channel_id):
+    """Set the notification channel for spam alerts"""
+    try:
+        from src.database import Database
+        db = Database()
+        
+        settings = db.update_server_settings(guild_id, {
+            'notify_channel_id': channel_id
+        })
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        }), 200
+    except Exception as e:
+        logger.error(f"Error setting notification channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings/<int:guild_id>/whitelist-channel/<int:channel_id>', methods=['POST'])
+@dev_or_owner_required
+def whitelist_channel(guild_id, channel_id):
+    """Add channel to whitelist (bot won't scan there)"""
+    try:
+        from src.database import Database
+        db = Database()
+        
+        settings = db.get_server_settings(guild_id)
+        if channel_id not in settings['whitelisted_channels']:
+            settings['whitelisted_channels'].append(channel_id)
+            settings = db.update_server_settings(guild_id, settings)
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        }), 200
+    except Exception as e:
+        logger.error(f"Error whitelisting channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/server-settings/<int:guild_id>/blacklist-channel/<int:channel_id>', methods=['POST'])
+@dev_or_owner_required
+def blacklist_channel(guild_id, channel_id):
+    """Add channel to blacklist (bot only scans here)"""
+    try:
+        from src.database import Database
+        db = Database()
+        
+        settings = db.get_server_settings(guild_id)
+        if channel_id not in settings['blacklisted_channels']:
+            settings['blacklisted_channels'].append(channel_id)
+            settings = db.update_server_settings(guild_id, settings)
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        }), 200
+    except Exception as e:
+        logger.error(f"Error blacklisting channel: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""

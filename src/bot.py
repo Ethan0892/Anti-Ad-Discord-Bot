@@ -95,8 +95,28 @@ class RateLimiter:
 
 rate_limiter = RateLimiter(calls=10, period=60)
 
+# Track spam notifications per channel to avoid message spam
+class SpamNotificationTracker:
+    """Track spam notifications per channel to prevent message spam."""
+    def __init__(self, cooldown_minutes: int = 5):
+        self.cooldown = timedelta(minutes=cooldown_minutes)
+        self.last_notification = {}
+    
+    def should_notify(self, channel_id: int) -> bool:
+        """Check if we should send a notification for this channel."""
+        now = datetime.now()
+        
+        if channel_id not in self.last_notification:
+            self.last_notification[channel_id] = now
+            return True
+        
+        if now - self.last_notification[channel_id] >= self.cooldown:
+            self.last_notification[channel_id] = now
+            return True
+        
+        return False
 
-@tasks.loop(hours=1)
+notification_tracker = SpamNotificationTracker(cooldown_minutes=5)
 async def cleanup_cache():
     """Periodically clean up detection cache."""
     try:
@@ -224,6 +244,15 @@ async def on_message(message: discord.Message):
                     # Log to log channel
                     await log_detection(message, matched_image, confidence)
                     
+                    # Send global notification (only once per cooldown period)
+                    if notification_tracker.should_notify(message.channel.id):
+                        try:
+                            await message.channel.send(
+                                "Spam image found, deleted"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending notification: {e}")
+                    
                     # Notify user via DM
                     await notify_user(message.author, matched_image, confidence)
                     
@@ -268,6 +297,15 @@ async def on_message(message: discord.Message):
                     
                     # Log to log channel
                     await log_detection(message, matched_image, confidence)
+                    
+                    # Send global notification (only once per cooldown period)
+                    if notification_tracker.should_notify(message.channel.id):
+                        try:
+                            await message.channel.send(
+                                "Spam image found, deleted"
+                            )
+                        except Exception as e:
+                            logger.error(f"Error sending notification: {e}")
                     
                     # Notify user via DM
                     await notify_user(message.author, matched_image, confidence)

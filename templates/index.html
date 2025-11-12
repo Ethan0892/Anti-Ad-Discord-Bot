@@ -606,6 +606,104 @@
             </div>
         </div>
 
+        <!-- Server Settings Configuration Panel -->
+        <div class="panel" style="margin-bottom: 30px;">
+            <div style="margin-bottom: 20px;">
+                <h2 style="color: var(--primary-light); font-size: 22px; margin-bottom: 10px;">Server Configuration</h2>
+                <p style="color: var(--text-muted); font-size: 13px;">Configure spam detection settings for this server</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Detection Settings -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Detection Settings</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
+                            <input type="checkbox" id="enableDetection" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span>Enable Spam Detection</span>
+                        </label>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Similarity Threshold</label>
+                        <input type="range" id="thresholdSlider" min="0.5" max="0.95" step="0.05" value="0.65" style="width: 100%; cursor: pointer;">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 5px;">
+                            <span>Lower (More Sensitive)</span>
+                            <span id="thresholdValue">0.65</span>
+                            <span>Higher (Less Sensitive)</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
+                            <input type="checkbox" id="autoDeleteImages" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span>Auto-delete Detected Images</span>
+                        </label>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveServerSettings()" style="width: 100%; justify-content: center;">
+                        Save Detection Settings
+                    </button>
+                </div>
+
+                <!-- Notification Settings -->
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                    <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Notification Settings</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-muted);">
+                            <input type="checkbox" id="sendGlobalNotification" checked style="width: 18px; height: 18px; cursor: pointer;">
+                            <span>Send Global Notifications</span>
+                        </label>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px; margin-left: 28px;">Posts a message when spam is detected (with cooldown)</p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Notification Cooldown (minutes)</label>
+                        <input type="number" id="notificationCooldown" min="1" max="60" value="5" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Mute Duration (days)</label>
+                        <input type="number" id="muteDuration" min="0" max="365" value="7" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px;">
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">0 = Permanent mute</p>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveServerSettings()" style="width: 100%; justify-content: center;">
+                        Save Notification Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- Channel Management -->
+            <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                <h3 style="color: var(--primary-light); font-size: 16px; margin-bottom: 15px;">Channel Management</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                        <h4 style="color: var(--primary-light); font-size: 14px; margin-bottom: 12px;">Whitelisted Channels</h4>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Bot won't scan images in these channels</p>
+                        <input type="text" id="whitelistChannelId" placeholder="Channel ID" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 10px;">
+                        <button class="btn btn-primary" onclick="whitelistChannel()" style="width: 100%; justify-content: center; font-size: 13px;">
+                            Add to Whitelist
+                        </button>
+                        <div id="whitelistList" style="margin-top: 12px; font-size: 12px; color: var(--text-muted);"></div>
+                    </div>
+
+                    <div style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: rgba(30, 58, 138, 0.1);">
+                        <h4 style="color: var(--primary-light); font-size: 14px; margin-bottom: 12px;">Blacklisted Channels</h4>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Bot will ONLY scan images in these channels</p>
+                        <input type="text" id="blacklistChannelId" placeholder="Channel ID" style="width: 100%; padding: 8px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 10px;">
+                        <button class="btn btn-primary" onclick="blacklistChannel()" style="width: 100%; justify-content: center; font-size: 13px;">
+                            Add to Blacklist
+                        </button>
+                        <div id="blacklistList" style="margin-top: 12px; font-size: 12px; color: var(--text-muted);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <div class="footer">
             <p>Anti-Ad Bot v2.0 | Secure Training Data Manager</p>
@@ -1018,11 +1116,180 @@
             }
         }
 
+        // Server Settings Functions
+        let currentGuildId = null; // Will be set from window or config
+
+        async function loadServerSettings() {
+            if (!currentGuildId) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}`);
+                const settings = await response.json();
+
+                document.getElementById('enableDetection').checked = settings.enabled !== false;
+                document.getElementById('thresholdSlider').value = settings.similarity_threshold || 0.65;
+                document.getElementById('thresholdValue').textContent = (settings.similarity_threshold || 0.65).toFixed(2);
+                document.getElementById('autoDeleteImages').checked = settings.auto_delete_images !== false;
+                document.getElementById('sendGlobalNotification').checked = settings.send_global_notification !== false;
+                document.getElementById('notificationCooldown').value = settings.notification_cooldown_minutes || 5;
+                document.getElementById('muteDuration').value = settings.mute_duration_days || 7;
+
+                updateChannelLists(settings);
+            } catch (error) {
+                console.error('Error loading server settings:', error);
+            }
+        }
+
+        function updateChannelLists(settings) {
+            const whitelistList = document.getElementById('whitelistList');
+            const blacklistList = document.getElementById('blacklistList');
+
+            whitelistList.innerHTML = (settings.whitelisted_channels || []).map(id => 
+                `<div style="padding: 5px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                    <span>#${id}</span>
+                    <button onclick="removeWhitelist(${id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px;">Remove</button>
+                </div>`
+            ).join('');
+
+            blacklistList.innerHTML = (settings.blacklisted_channels || []).map(id =>
+                `<div style="padding: 5px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                    <span>#${id}</span>
+                    <button onclick="removeBlacklist(${id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px;">Remove</button>
+                </div>`
+            ).join('');
+        }
+
+        async function saveServerSettings() {
+            if (!currentGuildId) {
+                showAlert('Guild ID not configured', 'error');
+                return;
+            }
+
+            const settings = {
+                enabled: document.getElementById('enableDetection').checked,
+                similarity_threshold: parseFloat(document.getElementById('thresholdSlider').value),
+                auto_delete_images: document.getElementById('autoDeleteImages').checked,
+                send_global_notification: document.getElementById('sendGlobalNotification').checked,
+                notification_cooldown_minutes: parseInt(document.getElementById('notificationCooldown').value),
+                mute_duration_days: parseInt(document.getElementById('muteDuration').value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Token': API_TOKEN
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Server settings saved successfully', 'success');
+                } else {
+                    showAlert('Error: ' + (data.error || 'Failed to save settings'), 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving settings: ' + error.message, 'error');
+            }
+        }
+
+        async function whitelistChannel() {
+            if (!currentGuildId) {
+                showAlert('Guild ID not configured', 'error');
+                return;
+            }
+
+            const channelId = document.getElementById('whitelistChannelId').value;
+            if (!channelId) {
+                showAlert('Please enter a channel ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}/whitelist-channel/${channelId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Channel added to whitelist', 'success');
+                    document.getElementById('whitelistChannelId').value = '';
+                    updateChannelLists(data.settings);
+                } else {
+                    showAlert('Error: ' + (data.error || 'Failed to whitelist channel'), 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function blacklistChannel() {
+            if (!currentGuildId) {
+                showAlert('Guild ID not configured', 'error');
+                return;
+            }
+
+            const channelId = document.getElementById('blacklistChannelId').value;
+            if (!channelId) {
+                showAlert('Please enter a channel ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/server-settings/${currentGuildId}/blacklist-channel/${channelId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Token': API_TOKEN
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Channel added to blacklist', 'success');
+                    document.getElementById('blacklistChannelId').value = '';
+                    updateChannelLists(data.settings);
+                } else {
+                    showAlert('Error: ' + (data.error || 'Failed to blacklist channel'), 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function removeWhitelist(channelId) {
+            // TODO: Implement remove from whitelist
+            showAlert('Remove from whitelist not yet implemented', 'info');
+        }
+
+        async function removeBlacklist(channelId) {
+            // TODO: Implement remove from blacklist
+            showAlert('Remove from blacklist not yet implemented', 'info');
+        }
+
+        // Update threshold display
+        document.getElementById('thresholdSlider').addEventListener('input', (e) => {
+            document.getElementById('thresholdValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
         // Initialize
         async function init() {
+            // Try to get guild ID from window object or config
+            currentGuildId = window.guildId || 0; // Default to 0 for testing
+            
             loadImages();
             loadConfig();
             checkStatus();
+            if (currentGuildId) {
+                loadServerSettings();
+            }
             setInterval(checkStatus, 30000); // Check every 30 seconds
         }
 
