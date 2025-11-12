@@ -29,7 +29,7 @@ APPEAL_CHANNEL_ID = int(os.getenv('APPEAL_CHANNEL_ID', 0))
 LOG_CHANNEL_ID = int(os.getenv('LOG_CHANNEL_ID', 0))
 
 # Image Detection Settings
-SIMILARITY_THRESHOLD = float(os.getenv('SIMILARITY_THRESHOLD', 0.75))
+SIMILARITY_THRESHOLD = float(os.getenv('SIMILARITY_THRESHOLD', 0.65))
 TRAINING_DATA_PATH = str(Path(__file__).parent.parent / 'Training-Data')
 
 # Punishment Settings (Configurable)

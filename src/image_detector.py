@@ -18,17 +18,25 @@ logger = logging.getLogger('image_detector')
 class ImageDetector:
     """Detects similar images using multiple computer vision techniques with caching."""
     
-    def __init__(self, training_data_path: str, similarity_threshold: float = 0.85):
+    def __init__(self, training_data_path: str, similarity_threshold: float = 0.65):
         self.training_data_path = Path(training_data_path)
         self.similarity_threshold = similarity_threshold
         self.training_images = []
         self.training_features = []
         
-        # Initialize feature detectors
-        self.orb = cv2.ORB_create(nfeatures=2000)  # Increased from 1000
-        self.sift = cv2.SIFT_create()  # Add SIFT for better accuracy
+        # Initialize feature detectors with enhanced settings
+        self.orb = cv2.ORB_create(nfeatures=3000, scaleFactor=1.2, nlevels=12)  # Enhanced ORB
+        self.sift = cv2.SIFT_create()  # SIFT for better accuracy
+        self.akaze = cv2.AKAZE_create()  # Add AKAZE for additional robustness
+        
+        # Matchers with different strategies
         self.bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         self.bf_matcher_sift = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+        self.bf_matcher_akaze = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+        
+        # FLANN matcher for faster matching on large datasets
+        FLANN_INDEX_KDTREE = 1
+        self.flann = cv2.FlannBasedMatcher({'algorithm': FLANN_INDEX_KDTREE, 'trees': 5}, {})
         
         # Cache for recent detections
         self.detection_cache: Dict[str, Tuple[bool, float, str, float]] = {}
@@ -36,6 +44,7 @@ class ImageDetector:
         
         # Performance tracking
         self.detection_times = []
+        self.algorithm_performance = {'sift': [], 'orb': [], 'akaze': [], 'structural': []}
         
         self.load_training_data()
     
@@ -74,6 +83,9 @@ class ImageDetector:
                     # Extract SIFT features
                     sift_keypoints, sift_descriptors = self.sift.detectAndCompute(gray, None)
                     
+                    # Extract AKAZE features for robustness
+                    akaze_keypoints, akaze_descriptors = self.akaze.detectAndCompute(gray, None)
+                    
                     if orb_descriptors is not None or sift_descriptors is not None:
                         self.training_images.append({
                             'path': str(img_path),
@@ -84,6 +96,8 @@ class ImageDetector:
                             'orb_descriptors': orb_descriptors,
                             'sift_keypoints': sift_keypoints,
                             'sift_descriptors': sift_descriptors,
+                            'akaze_keypoints': akaze_keypoints,
+                            'akaze_descriptors': akaze_descriptors,
                             'hist': self._compute_histogram(img),
                             'phash': self._compute_perceptual_hash(gray)
                         })
@@ -278,6 +292,41 @@ class ImageDetector:
             logger.error(f"Error comparing SIFT features: {e}")
             return 0.0
     
+    def _compare_akaze_features(self, desc1: np.ndarray, desc2: np.ndarray) -> float:
+        """Compare two sets of AKAZE feature descriptors (binary features like ORB)."""
+        if desc1 is None or desc2 is None:
+            return 0.0
+        
+        try:
+            if len(desc1) < 1 or len(desc2) < 1:
+                return 0.0
+            
+            # Use Hamming distance for binary features
+            matches = self.bf_matcher_akaze.knnMatch(desc1, desc2, k=2)
+            
+            if len(matches) == 0:
+                return 0.0
+            
+            # Apply Lowe's ratio test
+            good_matches = []
+            for match_pair in matches:
+                if len(match_pair) == 2:
+                    m, n = match_pair
+                    if m.distance < 70:  # Hamming distance threshold
+                        good_matches.append(m)
+                elif len(match_pair) == 1 and match_pair[0].distance < 50:
+                    good_matches.append(match_pair[0])
+            
+            if len(good_matches) == 0:
+                return 0.0
+            
+            similarity = len(good_matches) / max(len(desc1), len(desc2))
+            return min(1.0, similarity)
+            
+        except Exception as e:
+            logger.debug(f"Error comparing AKAZE features: {e}")
+            return 0.0
+    
     def _compute_structural_similarity(self, img1: np.ndarray, img2: np.ndarray) -> float:
         """Compute structural similarity between two images."""
         try:
@@ -373,6 +422,7 @@ class ImageDetector:
             # Extract features
             orb_keypoints, orb_descriptors = self.orb.detectAndCompute(gray, None)
             sift_keypoints, sift_descriptors = self.sift.detectAndCompute(gray, None)
+            akaze_keypoints, akaze_descriptors = self.akaze.detectAndCompute(gray, None)
             
             # Compute histogram and perceptual hash
             hist = self._compute_histogram(img)
@@ -403,6 +453,11 @@ class ImageDetector:
                 if sift_descriptors is not None and train_img['sift_descriptors'] is not None:
                     sift_similarity = self._compare_sift_features(sift_descriptors, train_img['sift_descriptors'])
                 
+                # 4b. Compare AKAZE features (additional robustness)
+                akaze_similarity = 0.0
+                if akaze_descriptors is not None and train_img.get('akaze_descriptors') is not None:
+                    akaze_similarity = self._compare_akaze_features(akaze_descriptors, train_img['akaze_descriptors'])
+                
                 # 5. Compute pixel-level similarity
                 structural_similarity = self._compute_structural_similarity(gray, train_img['gray'])
                 
@@ -420,19 +475,31 @@ class ImageDetector:
                     continue
                 
                 # Weighted average of all similarity measures
-                # Emphasize matching algorithms more when they agree
+                # Enhanced weighting emphasizes feature matching
                 combined_similarity = (
-                    phash_similarity * 0.10 +      # Quick hash check (fast pre-filter)
-                    hist_similarity * 0.20 +        # Color similarity
-                    max(orb_similarity, sift_similarity) * 0.30 +  # Feature matching (use best)
-                    structural_similarity * 0.30 +  # Pixel-level
-                    template_similarity * 0.10      # Template matching (multi-scale)
+                    phash_similarity * 0.08 +      # Quick hash check (fast pre-filter)
+                    hist_similarity * 0.15 +        # Color/tone similarity
+                    max(orb_similarity, sift_similarity, akaze_similarity) * 0.40 +  # Best feature match
+                    structural_similarity * 0.25 +  # Pixel-level structural
+                    template_similarity * 0.12      # Template matching (multi-scale)
                 )
+                
+                # Boost score if multiple algorithms agree strongly
+                algorithms_strong = sum([
+                    orb_similarity > 0.7,
+                    sift_similarity > 0.7,
+                    akaze_similarity > 0.7
+                ])
+                if algorithms_strong >= 2:
+                    combined_similarity = min(1.0, combined_similarity * 1.2)
+                
+                if hist_similarity > 0.8 and structural_similarity > 0.8:
+                    combined_similarity = min(1.0, combined_similarity * 1.1)
                 
                 logger.debug(
                     f"Comparison with {Path(train_img['path']).name}: "
                     f"phash={phash_similarity:.3f}, hist={hist_similarity:.3f}, "
-                    f"orb={orb_similarity:.3f}, sift={sift_similarity:.3f}, "
+                    f"orb={orb_similarity:.3f}, sift={sift_similarity:.3f}, akaze={akaze_similarity:.3f}, "
                     f"struct={structural_similarity:.3f}, template={template_similarity:.3f}, "
                     f"combined={combined_similarity:.3f}"
                 )
